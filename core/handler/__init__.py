@@ -63,3 +63,5 @@ from core.handler.call_hierarchy import PrepareCallHierarchyIncomingCalls, Prepa
 from core.handler.document_symbol import DocumentSymbol
 from core.handler.jdtls.jdtls_list_overridable_methods import JdtlsListOverridableMethods
 from core.handler.jdtls.jdtls_add_overridable_methods import JdtlsAddOverridableMethods
+from core.handler.jdtls.jdtls_project_is_test_file import JdtlsProjectIsTestFile
+from core.handler.jdtls.jdtls_project_get_classpaths import JdtlsProjectGetClasspaths
