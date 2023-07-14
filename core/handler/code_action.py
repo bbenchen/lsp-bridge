@@ -31,4 +31,18 @@ class CodeAction(Handler):
         return dict(range=range, context=context)
 
     def process_response(self, response) -> None:
-        self.file_action.push_code_actions(response, self.lsp_server_name, self.action_kind)
+        actions = response
+        if self.lsp_server_name == "jdtls":
+            for action in response:
+                if len(actions) == 0:
+                    actions.append(action)
+                else:
+                    exists = False
+                    for tmp_action in actions:
+                        if action["title"] == tmp_action["title"]:
+                            exists = True
+                            break
+                        if exists is False:
+                            actions.append(action)
+
+        self.file_action.push_code_actions(actions, self.lsp_server_name, self.action_kind)
