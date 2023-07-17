@@ -66,3 +66,4 @@ from core.handler.jdtls.jdtls_list_overridable_methods import JdtlsListOverridab
 from core.handler.jdtls.jdtls_add_overridable_methods import JdtlsAddOverridableMethods
 from core.handler.jdtls.jdtls_project_is_test_file import JdtlsProjectIsTestFile
 from core.handler.jdtls.jdtls_project_get_classpaths import JdtlsProjectGetClasspaths
+from core.handler.jdtls.jdtls_update_project_configuration import JdtlsUpdateProjectConfiguration

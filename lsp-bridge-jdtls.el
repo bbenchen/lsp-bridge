@@ -147,5 +147,11 @@ The SCOPE value can be compile, runtime, test"
       (funcall lsp-bridge-jdtls-project-get-classpaths-callback-function (mapconcat #'identity classpaths path-separator)))
   (setq lsp-bridge-jdtls-project-get-classpaths-callback-function nil))
 
+(defun lsp-bridge-jdtls-update-project-configuration ()
+  "Update project configuration."
+  (interactive)
+  (when (derived-mode-p 'java-mode 'java-ts-mode)
+    (lsp-bridge-call-file-api "jdtls_update_project_configuration" (lsp-bridge-get-buffer-truename))))
+
 (provide 'lsp-bridge-jdtls)
 ;;; lsp-bridge-jdtls.el ends here
