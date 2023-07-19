@@ -123,29 +123,29 @@ E.g. Use `-javaagent:/home/user/.emacs.d/plugin/lombok.jar` to add lombok suppor
               (params (list :overridableMethods selected-methods :context context)))
     (lsp-bridge-call-file-api "jdtls_add_overridable_methods" (json-serialize params))))
 
-(defvar lsp-bridge-jdtls-project-is-test-file-callback-function nil)
-(defvar lsp-bridge-jdtls-project-get-classpaths-callback-function nil)
+(defvar-local lsp-bridge-jdtls-project-is-test-file-callback-function nil)
+(defvar-local lsp-bridge-jdtls-project-get-classpaths-callback-function nil)
 
 (defun lsp-bridge-jdtls-project-is-test-file (callback)
   "Check if the specified file is a test file."
-  (setq lsp-bridge-jdtls-project-is-test-file-callback-function callback)
+  (setq-local lsp-bridge-jdtls-project-is-test-file-callback-function callback)
   (lsp-bridge-call-file-api "jdtls_project_is_test_file" (lsp-bridge-get-buffer-truename)))
 
 (defun lsp-bridge-jdtls-project-is-test-file-response (is-test-file)
   (if lsp-bridge-jdtls-project-is-test-file-callback-function
       (funcall lsp-bridge-jdtls-project-is-test-file-callback-function is-test-file))
-  (setq lsp-bridge-jdtls-project-is-test-file-callback-function nil))
+  (setq-local lsp-bridge-jdtls-project-is-test-file-callback-function nil))
 
 (defun lsp-bridge-jdtls-project-get-classpaths (callback &optional scope)
   "Get the classpaths of the project, get compiled classpaths by default.
 The SCOPE value can be compile, runtime, test"
-  (setq lsp-bridge-jdtls-project-get-classpaths-callback-function callback)
+  (setq-local lsp-bridge-jdtls-project-get-classpaths-callback-function callback)
   (lsp-bridge-call-file-api "jdtls_project_get_classpaths" (lsp-bridge-get-buffer-truename) (if scope scope "compile")))
 
 (defun lsp-bridge-jdtls-project-get-classpaths-response (classpaths)
   (if lsp-bridge-jdtls-project-get-classpaths-callback-function
       (funcall lsp-bridge-jdtls-project-get-classpaths-callback-function (mapconcat #'identity classpaths path-separator)))
-  (setq lsp-bridge-jdtls-project-get-classpaths-callback-function nil))
+  (setq-local lsp-bridge-jdtls-project-get-classpaths-callback-function nil))
 
 (defun lsp-bridge-jdtls-update-project-configuration ()
   "Update project configuration."
