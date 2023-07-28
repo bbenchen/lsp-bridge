@@ -122,7 +122,7 @@ lsp-bridge first looks for the content of the first *.pub file in the `~/.ssh` d
 - `lsp-bridge-code-action`: Popup code action menu, you can pass special `actin-kind` to fix, `action-kind` can use one of "quickfix", "refactor", "refactor.extract", "refactor.inline", "refactor.rewrite", "source", "source.organizeImports", "source.fixAll"
 - `lsp-bridge-workspace-list-symbols`: List all symbols in workspace and jump to the symbol definition
 - `lsp-bridge-signature-help-fetch`: show signature help in minibuffer manually (move cursor to parameters area will show signature help automatically)
-- `lsp-bridge-popup-complete-menu`: Manually popup the completion menu, you only need this command when turn on option `lsp-bride-complete-manually`
+- `lsp-bridge-popup-complete-menu`: Manually popup the completion menu, you only need this command when turn on option `lsp-bridge-complete-manually`
 - `lsp-bridge-restart-process`: restart lsp-bridge process (only used for development)
 - `lsp-bridge-toggle-sdcv-helper`: Switch dictionary completion assistant
 - `lsp-bridge-peek-abort`: Close peek window (default binding to `C-g`)
@@ -190,6 +190,7 @@ lsp-bridge first looks for the content of the first *.pub file in the `~/.ssh` d
 - `acm-enable-icon`: Whether the completion menu displays icons (Many macOS users have reported that emacs-plus28 cannot display icons properly, showing colored squares instead. There are two ways to solve this: install Emacs Mac Port or add the `--with-rsvg` option to the brew command when compiling Emacs yourself)
 - `acm-enable-tabnine`: Enable tabnine support， enable by default， when enable need execute `lsp-bridge-install-tabnine` command to install TabNine, and it can be used. TabNine will consume huge CPUs, causing your entire computer to be slow. If the computer performance is not good, it is not recommended to enable this option
 - `acm-enable-codeium`: Enable Codeium support, when enable need execute `lsp-bridge-install-update-codeium` command to install Codeium, then execute `lsp-bridge-codeium-auth` command to get auth token and execute `lsp-bridge-codeium-input-auth-token` command to get API Key, and it can be used.
+- `acm-enable-copilot`: Enable copilot support, firstly, purchase the Copilot service by https://github.com/features/copilot , when enable need install agent first `npm install -g copilot-node-server`, then execute `lsp-bridge-copilot-login`, lsp-bridge will display User Code in the Minibuffer, copy the User Code to the opened Copilot page to complete the login.
 - `acm-enable-search-file-words`: Whether the complete menu display the word of the file, enable by default
 - `acm-enable-quick-access`: Whether to display an index after the icon, quickly select candidate words using Alt + Number, default is off
 - `acm-quick-access-use-number-select`: Whether to use number keys for quick selection of candidate words, default is off, turning on this option may sometimes interfere with number input or accidentally select candidate words
@@ -368,6 +369,7 @@ The following is the directory structure of the lsp-bridge project:
 | core/hanlder/                       | Implementation of LSP message sending and receiving, where `__init__.py` is the base class.                                                                                                                  |
 | core/tabnine.py                     | The backend searches and completes with TabNine.                                                                                                                                                             |
 | core/codeium.py                     | The backend searches and completes with Codeium.                                                                                                                                                             |
+| core/copilot.py                     | The backend searches and completes with Copilot.                                                                                                                                                             |
 | core/search_file_words.py           | Asynchronous search backend for file words.                                                                                                                                                                  |
 | core/search_paths.py                | Asynchronous search backend for file paths.                                                                                                                                                                  |
 | core/search_sdcv_words.py           | English word search backend, interchangeable with other language’s StarDict dictionaries.                                                                                                                   |
