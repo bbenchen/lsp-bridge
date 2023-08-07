@@ -1423,8 +1423,7 @@ So we build this macro to restore postion after code format."
         (lsp-bridge-call-async "search_list_update"
                                "elisp"
                                symbols
-                               acm-backend-elisp-search-max-number
-                               "lsp-bridge-elisp-symbols-record")
+                               acm-backend-elisp-search-max-number)
         (setq acm-backend-elisp-symbols-update-size symbols-size)))))
 
 (defun lsp-bridge-elisp-symbols-search (current-symbol)
@@ -1433,11 +1432,6 @@ So we build this macro to restore postion after code format."
     ;; Search words if current prefix is not empty.
     (unless (or (string-equal current-symbol "") (null current-symbol))
       (lsp-bridge-call-async "search_list_search" "elisp" current-symbol))))
-
-(defun lsp-bridge-elisp-symbols-record (candidates)
-  (setq-local acm-backend-elisp-items candidates)
-  (setq-local acm-backend-elisp-cache-candiates nil)
-  (lsp-bridge-try-completion))
 
 (defun lsp-bridge-search-words-index-files ()
   "Index files when lsp-bridge python process finish."
@@ -2252,30 +2246,10 @@ We need exclude `markdown-code-fontification:*' buffer in `lsp-bridge-monitor-be
                              (not indent-tabs-mode)))))
 
 (defun lsp-bridge-search-backend--record-items (backend-name items)
-  (pcase backend-name
-    ("codeium"
-     (setq-local acm-backend-codeium-items items)
-     (setq-local acm-backend-codeium-cache-candiates nil))
-    ("copilot"
-     (setq-local acm-backend-copilot-items items)
-     (setq-local acm-backend-copilot-cache-candiates nil))
-    ("file-words"
-     (setq-local acm-backend-search-file-words-items items)
-     (setq-local acm-backend-search-file-words-cache-candiates nil))
-    ("sdcv-words"
-     (setq-local acm-backend-search-sdcv-words-items items)
-     (setq-local acm-backend-search-sdcv-words-cache-candiates nil))
-    ("tabnine"
-     (setq-local acm-backend-tabnine-items items)
-     (setq-local acm-backend-tabnine-cache-candiates nil))
-    ("tailwind"
-     (setq-local acm-backend-tailwind-items items)
-     (setq-local acm-backend-tailwind-cache-candiates nil))
-    ("paths" 
-     (setq-local acm-backend-path-items items)
-     (setq-local acm-backend-path-cache-candiates nil)))
-  (lsp-bridge-try-completion))
+  (set (make-local-variable (intern (format "acm-backend-%s-items" backend-name))) items)
+  (set (make-local-variable (intern (format "acm-backend-%s-cache-candiates" backend-name))) nil)
 
+  (lsp-bridge-try-completion))
 
 ;;; support which-func-mode
 ;;;
