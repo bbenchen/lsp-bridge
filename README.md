@@ -37,6 +37,18 @@ Using Python multithreading techniques, lsp-bridge builds a high-speed cache bet
 (global-lsp-bridge-mode)
 ```
 
+* If you are using straight to install, you should use the following configuration to install:
+
+```elisp
+(use-package lsp-bridge
+  :straight '(lsp-bridge :type git :host github :repo "manateelazycat/lsp-bridge"
+            :files (:defaults "*.el" "*.py" "acm" "core" "langserver" "multiserver" "resources")
+            :build (:not compile))
+  :init
+  (global-lsp-bridge-mode))
+```
+
+
 Please note that:
 
 1. When using lsp-bridge, please first disable other completion plugins such as lsp-mode, eglot, company, corfu, etc. Lsp-bridge provides a complete solution from completion backend, frontend to multi-backend fusion.
@@ -290,6 +302,7 @@ If your language supports mixed multi-language servers, it is recommended to che
 | [dart-analysis-server](https://github.com/dart-lang/sdk/tree/master/pkg/analysis_server)           | Dart                                    |                                                                                                                                                                                                                                                                    |
 | [metals](https://scalameta.org/metals/)                                                            | Scala                                   |                                                                                                                                                                                                                                                                    |
 | [typescript](https://github.com/typescript-language-server/typescript-language-server)             | Typescript, Javascript                  |                                                                                                                                                                                                                                                                    |
+| [svelte](https://github.com/sveltejs/language-tools/tree/master/packages/language-server)                 | Svelte                                  |                                                                                                                                                                                                                                                                    |
 | [ocamllsp](https://github.com/ocaml/ocaml-lsp)                                                     | Ocaml                                   |                                                                                                                                                                                                                                                                    |
 | [erlang-ls](https://github.com/erlang-ls/erlang_ls)                                                | Erlang                                  |                                                                                                                                                                                                                                                                    |
 | [texlab](https://github.com/latex-lsp/texlab)                                                      | Latex                                   |                                                                                                                                                                                                                                                                    |
