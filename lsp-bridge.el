@@ -101,6 +101,8 @@
   :group 'applications)
 
 (require 'acm)
+(require 'tramp)
+(defvar lsp-bridge-tramp-alias-alist nil)
 
 (setq acm-backend-lsp-fetch-completion-item-func 'lsp-bridge-fetch-completion-item-info)
 
@@ -318,12 +320,18 @@ Setting this to nil or 0 will turn off the indicator."
   :type 'string)
 
 (defcustom lsp-bridge-python-command (cond ((memq system-type '(cygwin windows-nt ms-dos))
-                                            (if (executable-find "pypy3.exe")
-                                                "pypy3.exe"
-                                              "python3.exe"))
-                                           (t (if (executable-find "pypy3")
-                                                  "pypy3"
-                                                "python3")))
+                                            (cond ((executable-find "pypy3.exe")
+                                                   "pypy3.exe")
+                                                  ((executable-find "python3.exe")
+                                                   "python3.exe")
+                                                  ((executable-find "python.exe")
+                                                   "python.exe")))
+                                           (t (cond ((executable-find "pypy3")
+                                                     "pypy3")
+                                                    ((executable-find "python3")
+                                                     "python3")
+                                                    ((executable-find "python")
+                                                     "python"))))
   "The Python interpreter used to run lsp_bridge.py."
   :type 'string)
 
@@ -643,6 +651,15 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
   "Open characters for string interpolation. The elements are cons cell (major-mode . open-char-regexp)"
   :type 'cons)
 
+(defvar lsp-bridge-enable-with-tramp nil
+  "Whether enable lsp-bridge when editing tramp file.")
+
+(defun lsp-bridge-find-file-hook-function ()
+  (when (and lsp-bridge-enable-with-tramp (file-remote-p (buffer-file-name)))
+      (lsp-bridge-sync-tramp-remote)))
+
+(add-hook 'find-file-hook #'lsp-bridge-find-file-hook-function)
+
 (defun lsp-bridge--get-indent-width (mode)
   "Get indentation offset for MODE."
   (or (alist-get mode lsp-bridge-formatting-indent-alist)
@@ -684,9 +701,11 @@ So we build this macro to restore postion after code format."
 (defun lsp-bridge-get-match-buffer-by-remote-file (host path)
   (cl-dolist (buffer (buffer-list))
     (with-current-buffer buffer
-      (when (string-equal (buffer-name) (format "[LBR] %s" (file-name-nondirectory path)))
-        (cl-return buffer))
-      )))
+      (when (and (boundp 'lsp-bridge-remote-file-path)
+                 (string-equal lsp-bridge-remote-file-path path)
+                 (boundp 'lsp-bridge-remote-file-host)
+                 (string-equal lsp-bridge-remote-file-host host))
+        (cl-return buffer)))))
 
 (defun lsp-bridge-get-match-buffer-by-filepath (name)
   (cl-dolist (buffer (buffer-list))
@@ -1383,7 +1402,7 @@ So we build this macro to restore postion after code format."
         ;; Codeium search.
         (when (and acm-enable-codeium
                    ;; Codeium backend not support remote file now, disable it temporary.
-                   (not (lsp-bridge-is-remote-file))
+                   (or (not (lsp-bridge-is-remote-file)) lsp-bridge-use-local-codeium)
                    ;; Don't enable codeium on Markdown mode, Org mode, ielm and minibuffer, very disruptive to writing.
                    (not (or (derived-mode-p 'markdown-mode)
                             (eq major-mode 'org-mode)
@@ -1483,8 +1502,7 @@ So we build this macro to restore postion after code format."
 (defun lsp-bridge-search-words-update (begin-pos end-pos change-text)
   (if (lsp-bridge-is-remote-file)
       (progn
-        (lsp-bridge-remote-save-buffer)
-        (lsp-bridge-remote-send-func-request "search_file_words_load_file" (list lsp-bridge-remote-file-path)))
+        (lsp-bridge-remote-send-func-request "search_file_words_load_file" (list lsp-bridge-remote-file-path t)))
     (when (lsp-bridge-epc-live-p lsp-bridge-epc-process)
       (lsp-bridge-call-async "search_file_words_change_buffer"
                              (buffer-name)
@@ -1507,6 +1525,14 @@ So we build this macro to restore postion after code format."
 (defcustom lsp-bridge-find-ref-fallback-function nil
   "Fallback for find referecences failure."
   :type 'function
+  :group 'lsp-bridge)
+
+(defcustom lsp-bridge-find-def-select-in-open-windows nil
+  "If this option is turned on, when searching for function definitions,
+already open windows will be selected instead of switching buffers.
+
+Off by default."
+  :type 'boolean
   :group 'lsp-bridge)
 
 (defvar-local lsp-bridge-jump-to-def-in-other-window nil)
@@ -1674,17 +1700,29 @@ So we build this macro to restore postion after code format."
     (setq position-before-jump (copy-marker marker)))
   (setq mark-ring lsp-bridge-mark-ring))
 
+(defun lsp-bridge-find-window-match-filename (filename)
+  (dolist (window (window-list))
+    (when (string-equal filename (buffer-file-name (window-buffer window)))
+      (return window))))
+
 (defun lsp-bridge-define--jump (filename filehost position)
   (let (position-before-jump)
     (lsp-bridge-define--jump-record-postion)
 
-    (if (string-equal filehost "")
+    (if (or (string-equal filehost "") lsp-bridge-enable-with-tramp)
         (progn
-          ;; Jump to define.
-          ;; Show define in other window if `lsp-bridge-jump-to-def-in-other-window' is non-nil.
-          (if lsp-bridge-jump-to-def-in-other-window
-              (find-file-other-window filename)
-            (find-file filename))
+          (setq filename (concat (cdr (assoc filehost lsp-bridge-tramp-alias-alist)) filename))
+          (let ((match-window (lsp-bridge-find-window-match-filename filename)))
+            (if (and lsp-bridge-find-def-select-in-open-windows
+                     match-window)
+                ;; Try select to window if `lsp-bridge-find-def-select-in-open-windows' is non-nil.
+                (select-window match-window)
+              ;; Jump to define.
+              ;; Show define in other window if `lsp-bridge-jump-to-def-in-other-window' is non-nil.
+              (if lsp-bridge-jump-to-def-in-other-window
+                  (find-file-other-window filename)
+                (find-file filename))
+              ))
 
           ;; Init jump history in new buffer.
           (setq-local lsp-bridge-mark-ring (append (list position-before-jump) mark-ring))
@@ -2207,6 +2245,9 @@ We need exclude `markdown-code-fontification:*' buffer in `lsp-bridge-monitor-be
                              (= after-point buffer-max)
                              max-num-results))))
 
+(defvar lsp-bridge-use-local-codeium nil
+  "Whether use local codeium when editing remote file.")
+
 (defun lsp-bridge-codeium-complete ()
   (interactive)
   (let ((all-text (buffer-substring-no-properties (point-min) (point-max)))
@@ -2216,7 +2257,7 @@ We need exclude `markdown-code-fontification:*' buffer in `lsp-bridge-monitor-be
            (while (not (alist-get mode acm-backend-codeium-language-alist))
              (setq mode (get mode 'derived-mode-parent)))
            (alist-get mode acm-backend-codeium-language-alist))))
-    (if (lsp-bridge-is-remote-file)
+    (if (and (lsp-bridge-is-remote-file) (not lsp-bridge-use-local-codeium))
         (lsp-bridge-remote-send-func-request "codeium_complete"
                                              (list
                                               (1- (point))
@@ -2342,6 +2383,39 @@ We need exclude `markdown-code-fontification:*' buffer in `lsp-bridge-monitor-be
                                   (insert (lsp-bridge-open-or-create-file ip-file))
                                   (split-string (buffer-string) "\n" t)))))
     (lsp-bridge-call-async "open_remote_file" path (list :line 0 :character 0))))
+
+(defun lsp-bridge-sync-tramp-remote ()
+  (interactive)
+  (let* ((tramp-file-name (tramp-dissect-file-name (buffer-file-name)))
+         (username (tramp-file-name-user tramp-file-name))
+         (domain (tramp-file-name-domain tramp-file-name))
+         (port (tramp-file-name-port tramp-file-name))
+         (host (tramp-file-name-host tramp-file-name))
+         (path (tramp-file-name-localname tramp-file-name))
+         alias)
+
+    (unless (network-lookup-address-info host 'ipv4 'numeric)
+      (setq alias host))
+
+    (if alias
+      (if-let (alias-host (assoc alias lsp-bridge-tramp-alias-alist))
+          (setq host (cdr alias-host))
+        (let ((default-directory "~/"))
+          (setq host (string-trim (shell-command-to-string
+                                   (format "ssh -G -T %s | grep '^hostname' | cut -d ' ' -f 2" alias)))))
+        (push `(,alias . ,host) lsp-bridge-tramp-alias-alist)))
+
+    (unless (assoc host lsp-bridge-tramp-alias-alist)
+      (push `(,host . ,(concat (string-join (butlast (string-split (buffer-file-name) ":" t)) ":") ":"))
+              lsp-bridge-tramp-alias-alist))
+
+    (lsp-bridge-call-async "sync_tramp_remote" username host port alias)
+
+    (setq-local lsp-bridge-remote-file-flag t)
+    (setq-local lsp-bridge-remote-file-host host)
+    (setq-local lsp-bridge-remote-file-path path)
+
+    (add-hook 'kill-buffer-hook 'lsp-bridge-remote-kill-buffer nil t)))
 
 (defun lsp-bridge-open-remote-file--response(server path content position)
   (let ((buf-name (format "[LBR] %s" (file-name-nondirectory path))))
