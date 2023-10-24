@@ -66,21 +66,22 @@ It should be noted that lsp-bridge has three scanning modes:
 
 ## Remote Usage
 
-lsp-bridge can also perform code syntax completion for files on remote servers, similar to the effect in VSCode. Below are the steps to configure remote code completion:
+`lsp-bridge` can perform code syntax completion on files on a remote server, similar to VSCode. The configuration steps are as follows:
 
-1. Install lsp-bridge and the corresponding LSP Server on the remote server
-2. Start the lsp-bridge service: `python3 lsp-bridge/lsp_bridge.py`
-3. Use the command `lsp-bridge-open-remote-file` to open a remote file, enter the username, server IP, SSH port (default is: 22) and file path, such as `user@ip:[ssh_port]:/path/file`. If you wish to open files through tramp, you need to first enable the option `lsp-bridge-enable-with-tramp`. lsp-bridge will replace the tramp file synchronization algorithm with its built-in efficient completion algorithm, to achieve a completely non-stuttering completion experience.
+1. Install lsp-bridge and the corresponding LSP Server on the remote server.
+2. Start lsp-bridge: `python3 lsp-bridge/lsp_bridge.py`.
+3. Use the `lsp-bridge-open-remote-file` command to open files, entering the username, IP, SSH port (default 22), and path, such as `user@ip:[ssh_port]:/path/file`. Enabling the `lsp-bridge-enable-with-tramp` option allows direct opening of tramp files, using the efficient algorithm of lsp-bridge instead of tramp, achieving smooth completion.
 
-The principle of `lsp-bridge` remote completion is as follows:
+Principle of remote completion:
 
-1. Log in to the remote server with SSH authentication and access and edit remote files
-2. When editing a local copy of a remote file, it will send incremental diff sequences to the lsp-bridge server in real-time. The server will rebuild the latest content of the file based on the incremental diff sequence and call the LSP Server deployed on the server for syntax completion calculation.
-3. After the server completes the LSP completion menu item calculation, `lsp-bridge` will send the completion menu item data back to the local side, and then the local Emacs will draw the completion menu.
+1. Log in to the server with SSH authentication, access and edit files.
+2. When editing a replica of a remote file, real-time diff sequences will be sent to lsp-bridge, and the server side will use these sequences to rebuild the file and calculate the completion data by the remote LSP Server.
+3. The remote LSP Server will send back the completion data to the local side, and Emacs will display the completion menu.
 
-Please note:
-1. If the completion menu does not pop up, please log in to the remote server and view the terminal output of `lsp_bridge.py`. Generally speaking, it is because the installation of the server's LSP Server is incomplete.
-2. lsp-bridge prefers to find the content of the first *.pub file in the `~/.ssh` directory as the public key credential for logging in to the remote server. If public key login fails, it will prompt the user to enter the login password. lsp-bridge does not store the server login password in a file. To avoid repeatedly entering passwords, it is recommended that you log in to the remote server using a public key.
+Note:
+
+1. If the completion menu is not displayed, check the output of `lsp_bridge.py` on the remote server, it may be that the LSP Server is not fully installed.
+2. lsp-bridge will use the first *.pub file in `~/.ssh` as a login credential. If public key login fails, you will be asked to enter a password. lsp-bridge will not store the password, it is recommended to use public key login to avoid repeated password entry.
 
 ## Keymap
 
@@ -191,6 +192,7 @@ lsp-bridge provides support for more than two language servers for many language
 - `lsp-bridge-symbols-enable-which-func`: Using lsp backend for `which-func`, disable by default
 - `lsp-bridge-enable-org-babel`: Use lsp completion in org babel, disable by default, if unable to complete, please make sure the string after begin_src exists in the `org-src-lang-modes` variable
 - `lsp-bridge-peek-file-content-height`: Display how many lines of file content in peek windows
+- `lsp-bridge-peek-file-content-scroll-margin`: Set how many lines of file content should be scroll up and down.
 - `lsp-bridge-peek-list-height`: Select the next option for definition and reference
 - `lsp-bridge-peek-ace-keys`: Keys to press when performing `lsp-bridge-peek-through`
 - `lsp-bridge-peek-ace-cancel-keys`: Keys to exit `lsp-bridge-peek-through`
@@ -411,19 +413,17 @@ Then turn on develop option `lsp-bridge-enable-log` and happy hacking! ;)
 
 Please use `emacs -q` and load a minimal setup with only lsp-bridge to verify that the bug is reproducible. If `emacs -q` works fine, probably something is wrong with your Emacs config.
 
-If the problem still exists, please report it [here](https://github.com/manateelazycat/lsp-bridge/issues/new) with `*lsp-bridge*` buffer content, it contains many clues that can help us locate the problem faster.
+If the problem still exists:
+1. Turn on option `lsp-bridge-enable-log`
+2. Use `lsp-bridge-restart-process` to restart the `LSP-BRIDGE` process
+3. Report issue with `*lsp-bridge*` buffer content, it contains many clues that can help us locate the problem faster
 
-- If you get a segfault error, please use the following way to collect crash information:
+If you get a segfault error, please use the following way to collect crash information:
 
   1. Install gdb and turn on option `lsp-bridge-enable-debug`
   2. Use the command `lsp-bridge-restart-process` to restart the `LSP-BRIDGE` process
   3. Send issue with `*lsp-bridge*` buffer content when next crash
-
-- If you get other errors, please use the following way to collection information:
-  1. turn on option `lsp-bridge-enable-log`
-  2. Use the command `lsp-bridge-restart-process` to restart the `LSP-BRIDGE` process
-  3. Send issue with `*lsp-bridge*` buffer content
-
+  
 ## Contributor
 lsp-bridge's rapid development couldn't have been possible without the strong support and selfless contributions from the community's experts. Without the community’s support, lsp-bridge wouldn’t be where it is today. Thank you to the loveliest people in the world, happy hacking ;)
 

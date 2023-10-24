@@ -64,21 +64,22 @@ lsp-bridge 开箱即用， 安装好语言对应的 [LSP 服务器](https://gith
 
 ## 远程使用
 
-lsp-bridge 也可以对远程服务器的文件进行代码语法补全， 效果与 VSCode 类似。 以下是配置远程代码补全的步骤：
+`lsp-bridge`能像 VSCode 一样在远程服务器文件上进行代码语法补全。 配置步骤如下：
 
-1. 在远程服务器上安装 lsp-bridge 和对应的 LSP Server
-2. 启动 lsp-bridge 服务： `python3 lsp-bridge/lsp_bridge.py`
-3. 使用命令`lsp-bridge-open-remote-file`打开远程文件， 输入用户名、 服务器 IP、 SSH 端口(默认为: 22) 和文件路径， 比如`user@ip:[ssh_port]:/path/file`, 如果希望通过 tramp 打开文件， 需要先开启选项 `lsp-bridge-enable-with-tramp`, lsp-bridge 会用内置的高效补全算法替代 tramp 的文件同步算法， 以实现完全不卡顿的补全体验
+1. 在远程服务器安装 lsp-bridge 和相应的 LSP Server。
+2. 启动 lsp-bridge： `python3 lsp-bridge/lsp_bridge.py`。
+3. 用`lsp-bridge-open-remote-file`命令打开文件， 输入用户名、 IP、 SSH 端口(默认 22) 和路径， 例如`user@ip:[ssh_port]:/path/file`。 启用`lsp-bridge-enable-with-tramp`选项可以直接打开 tramp 文件， 并用 lsp-bridge 的高效算法代替 tramp， 实现流畅补全。
 
-`lsp-bridge` 远程补全的原理如下：
+远程补全原理：
 
-1. 以 SSH 认证方式登录远程服务器， 并访问和编辑远程文件
-2. 当本地编辑远程文件副本时， 会实时发送增量 diff 序列给 lsp-bridge 服务端。 服务端将根据增量 diff 序列重建文件的最新内容， 并调用部署在服务端的 LSP Server 进行语法补全计算
-3. 服务端完成 LSP 补全菜单项计算后， `lsp-bridge`将补全菜单项数据回传到本地， 再由本地 Emacs 绘制补全菜单
+1. 通过 SSH 认证登录服务器， 访问和编辑文件
+2. 编辑远程文件副本时， 会实时发送 diff 序列到 lsp-bridge， 服务端用这些序列重建文件， 并由远端的 LSP Server 计算补全数据
+3. 远端 LSP Server 将补全数据回传本地由 Emacs 显示补全菜单
 
-请注意：
-1.  如果补全菜单没有弹出， 请登录远程服务器， 查看`lsp_bridge.py`的终端输出。 一般来说， 是因为服务端的 LSP Server 安装不完整导致的。
-2. lsp-bridge 优先从`~/.ssh`目录下找第一个 *.pub 文件的内容作为远程服务器登录的公钥凭证， 如果公钥登录失败会提示用户输入登录密码， lsp-bridge 不存储服务器登录密码到文件中， 为了避免反复输入密码， 建议你用公钥的方式登录远程服务器。
+注意：
+
+1. 若补全菜单未显示， 检查远程服务器的`lsp_bridge.py`输出， 可能是 LSP Server 未完全安装
+2. lsp-bridge 会用`~/.ssh`的第一个 *.pub 文件作为登录凭证。 如果公钥登录失败， 会要求输入密码。 lsp-bridge 不会存储密码， 建议用公钥登录以避免重复输入密码
 
 ## 按键
 
@@ -189,7 +190,8 @@ lsp-bridge 针对许多语言都提供 2 个以上的语言服务器支持， �
 - `lsp-bridge-user-multiserver-dir`: 用户 multiserver 配置文件目录， 如果目录下的配置文件和 [lsp-bridge/multiserver](https://github.com/manateelazycat/lsp-bridge/tree/master/multiserver) 里的配置文件同名， lsp-bridge 会使用这个目录下的配置文件
 - `lsp-bridge-symbols-enable-which-func`: 在`which-func`使用 lsp 后端, 默认关闭
 - `lsp-bridge-enable-org-babel`: 在 Org Babel 里使用 LSP 补全， 默认关闭, 如果没法补全， 请确保 begin_src 后面的字符串存在于 `org-src-lang-modes` 变量中
-- `lsp-bridge-peek-file-content-height`: 在 peek windows 中显示多少行的文件内容
+- `lsp-bridge-peek-file-content-height`: 在 peek window 中显示多少行的文件内容
+- `lsp-bridge-peek-file-content-scroll-margin`: peek window 中内容滚动的行数
 - `lsp-bridge-peek-list-height`: 选择下一个定义和引用的备选项
 - `lsp-bridge-peek-ace-keys`: 进行 `lsp-bridge-peek-through` 时待按的按键
 - `lsp-bridge-peek-ace-cancel-keys`: 退出 `lsp-bridge-peek-through` 的按键
@@ -411,21 +413,19 @@ lsp-bridge 每种语言的服务器配置存储在 [lsp-bridge/langserver](https
 
 请用命令 `emacs -q` 并只添加 lsp-bridge 配置做一个对比测试， 如果 `emacs -q` 可以正常工作， 请检查你个人的配置文件。
 
-如果`emacs -q`环境下问题依旧， 请到[这里](https://github.com/manateelazycat/lsp-bridge/issues/new) 反馈, 并附带 `*lsp-bridge*` 窗口的内容给我们提交 issue， 那里面有很多线索可以帮助我们排查问题。 。
+如果`emacs -q`环境下问题依旧
+  1. 打开选项 `(setq lsp-bridge-enable-log t)`
+  2. 使用命令 `lsp-bridge-restart-process` 重启 LSP-BRIDGE 进程
+  3. 在 issue 中发送`*lsp-bridge*`中的内容, 那里面有很多线索可以帮助我们排查问题
 
-- 如果你遇到崩溃的问题, 请用下面的方式来收集崩溃信息:
+如果你遇到崩溃的问题, 请用下面的方式来收集崩溃信息:
 
   1. 先安装 gdb 并打开选项 `(setq lsp-bridge-enable-debug t)`
   2. 使用命令 `lsp-bridge-restart-process` 重启 LSP-BRIDGE 进程
   3. 在下次崩溃时发送 `*lsp-bridge*` 的内容
 
-- 如果你遇到其他问题， 请用下面的方式来收集信息
-  1. 打开选项 `(setq lsp-bridge-enable-log t)`
-  2. 使用命令 `lsp-bridge-restart-process` 重启 LSP-BRIDGE 进程
-  3. 发送`*lsp-bridge*`中的内容
-
 ## 贡献者
-lsp-bridge 的快速发展离不开社区各位大佬的鼎力支持和无私风险， 没有社区的支持， lsp-bridge 不可能发展到今天， 感谢世界上最可爱的你们, happy hacking ;)
+lsp-bridge 的快速发展离不开社区各位大佬的鼎力支持和无私奉献， 没有社区的支持， lsp-bridge 不可能发展到今天， 感谢世界上最可爱的你们, happy hacking ;)
 
 <a href = "https://github.com/manateelazycat/lsp-bridge/graphs/contributors">
   <img src = "https://contrib.rocks/image?repo=manateelazycat/lsp-bridge"/>
