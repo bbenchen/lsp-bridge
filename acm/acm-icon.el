@@ -197,7 +197,7 @@ If COLOR-NAME is unknown to Emacs, then return COLOR-NAME as-is."
         (apply #'color-rgb-to-hex (append rgb-color '(2)))
       color-name)))
 
-(defun acm-icon (collection name &optional fg-color bg-color zoom)
+(defun acm-icon (collection name fg-color)
   (let* ((root (acm-icon-parse collection name))
 
          ;; Read original viewbox
@@ -212,28 +212,15 @@ If COLOR-NAME is unknown to Emacs, then return COLOR-NAME as-is."
          (svg-width  (* (window-font-width)  acm-icon-width))
          (svg-height (* (window-font-height) 1))
 
-         ;; Zoom the icon by using integer factor only
-         (zoom (max 1 (truncate (or zoom 1))))
-         (svg-width  (* svg-width zoom))
-         (svg-height (* svg-height zoom))
-
          (svg-viewbox (format "%f %f %f %f" view-x view-y view-width view-height))
          (fg-color (acm-icon-convert-to-svg-color
                     (or (when (facep fg-color)
                           (face-foreground fg-color nil t))
                         fg-color (face-attribute 'default :foreground))))
-         (bg-color (acm-icon-convert-to-svg-color
-                    (or (when (facep bg-color)
-                          (face-background bg-color nil t))
-                        bg-color "transparent")))
          (svg (svg-create svg-width svg-height
                           :viewBox svg-viewbox
                           :stroke-width 0
                           :fill fg-color)))
-    (svg-rectangle svg
-                   view-x view-y view-width view-height
-                   :fill bg-color)
-
     (dolist (item (xml-get-children (car root) 'path))
       (let* ((attrs (xml-node-attributes item))
              (path (cdr (assoc 'd attrs)))
