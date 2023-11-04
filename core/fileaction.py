@@ -18,15 +18,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import os
 import pprint
 import threading
 import time
-import os
-from typing import Dict, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Tuple
 
+from core.handler import *
 from core.lspserver import LspServer
 from core.utils import *
-from core.handler import *
 
 if TYPE_CHECKING:
     from lsp_bridge import LspBridge  # noqa: F401
@@ -231,6 +231,9 @@ class FileAction:
         # Record change cursor time.
         self.last_change_cursor_time = time.time()
 
+    def get_diagnostics_count(self):
+        return sum(len(diags) for diags in self.diagnostics.values())
+
     def get_diagnostics(self):
         diagnostics = []
         diagnostic_count = 0
@@ -291,7 +294,11 @@ class FileAction:
         # Only push diagnostics to Emacs when ticker is newest.
         # Drop all temporarily diagnostics when typing.
         if ticker == self.diagnostics_ticker:
-            eval_in_emacs("lsp-bridge-diagnostic--render", self.filepath, get_lsp_file_host(), self.get_diagnostics())
+            eval_in_emacs("lsp-bridge-diagnostic--render",
+                          self.filepath,
+                          get_lsp_file_host(),
+                          self.get_diagnostics(),
+                          self.get_diagnostics_count())
 
     def record_dart_closing_lables(self, labels):
         eval_in_emacs("lsp-bridge-dart-closing-labels--render", self.filepath, get_lsp_file_host(), labels)
@@ -311,14 +318,15 @@ class FileAction:
             if len(code_actions) > 0:
                 eval_in_emacs("lsp-bridge-code-action--fix", self.get_code_actions(), action_kind)
             else:
-                message_emacs("No code actions here")
+                message_emacs("Fantastic, your code looks great! No further actions needed!")
 
     def get_code_actions(self):
         code_actions = []
         for server_name in self.code_actions:
-            for code_action in self.code_actions[server_name]:
-                code_action["server-name"] = server_name
-                code_actions.append(code_action)
+            if self.code_actions[server_name] is not None:
+                for code_action in self.code_actions[server_name]:
+                    code_action["server-name"] = server_name
+                    code_actions.append(code_action)
 
         return code_actions
 

@@ -240,9 +240,6 @@ class LspServer:
                                                stdout=PIPE,
                                                stderr=stderr)
 
-        # Notify user server is start.
-        message_emacs("Start LSP server ({}) for {}...".format(self.server_info["name"], self.root_path))
-
         # Two separate thread (read/write) to communicate with LSP server.
         self.receiver = LspServerReceiver(self.lsp_subprocess, self.server_info["name"])
         self.receiver.start()
@@ -518,31 +515,27 @@ class LspServer:
             items.append(sessionSettings)
         self.sender.send_response(request_id, items)
 
-    def handle_recv_message(self, message: dict):
-        if "error" in message:
-            logger.error("Recv message (error):")
-            logger.error(json.dumps(message, indent=3))
+    def handle_error_message(self, message):
+        logger.error("Recv message (error):")
+        logger.error(json.dumps(message, indent=3))
 
-            error_message = message["error"]["message"]
-            if error_message == "Unhandled method completionItem/resolve":
-                self.completion_resolve_provider = False
-            elif error_message == "Unhandled method textDocument/prepareRename":
-                self.rename_prepare_provider = False
-            elif error_message == "Unhandled method textDocument/codeAction":
-                self.code_action_provider = False
-            elif error_message == "Unhandled method textDocument/formatting":
-                self.code_format_provider = False
-            elif error_message == "Unhandled method textDocument/signatureHelp":
-                self.signature_help_provider = False
-            elif error_message == "Unhandled method workspace/symbol":
-                self.workspace_symbol_provider = False
-            elif error_message == "Unhandled method textDocument/inlayHint":
-                self.inlay_hint_provider = False
-            else:
-                message_emacs(error_message)
+        error_message = message["error"]["message"]
+        provider_attributes = {
+            "Unhandled method completionItem/resolve": "completion_resolve_provider",
+            "Unhandled method textDocument/prepareRename": "rename_prepare_provider",
+            "Unhandled method textDocument/codeAction": "code_action_provider",
+            "Unhandled method textDocument/formatting": "code_format_provider",
+            "Unhandled method textDocument/signatureHelp": "signature_help_provider",
+            "Unhandled method workspace/symbol": "workspace_symbol_provider",
+            "Unhandled method textDocument/inlayHint": "inlay_hint_provider",
+        }
 
-            return
+        if error_message in provider_attributes:
+            setattr(self, provider_attributes[error_message], False)
+        else:
+            message_emacs(error_message)
 
+    def record_message(self, message):
         if "id" in message:
             if "method" in message:
                 # server request
@@ -564,16 +557,24 @@ class LspServer:
                 # others
                 log_time("Recv message {} from '{}' for project {}".format(message, self.server_info["name"], self.project_name))
 
+    def handle_diagnostics_message(self, message):
+        self.handle_publish_diagnostics(message)
+
+        self.handle_dart_publish_closing_labels(message)
+
+    def handle_publish_diagnostics(self, message):
         if "method" in message and message["method"] == "textDocument/publishDiagnostics":
             filepath = uri_to_path(message["params"]["uri"])
             if self.enable_diagnostics and is_in_path_dict(self.files, filepath):
                 get_from_path_dict(self.files, filepath).record_diagnostics(message["params"]["diagnostics"], self.server_info["name"])
 
+    def handle_dart_publish_closing_labels(self, message):
         if "method" in message and message["method"] == "dart/textDocument/publishClosingLabels":
             filepath = uri_to_path(message["params"]["uri"])
             if is_in_path_dict(self.files, filepath):
                 get_from_path_dict(self.files, filepath).record_dart_closing_lables(message["params"]["labels"])
 
+    def handle_log_message(self, message):
         # Notice user if got error message from lsp server.
         if "method" in message and message["method"] == "window/logMessage":
             try:
@@ -582,78 +583,64 @@ class LspServer:
             except:
                 pass
 
-        logger.debug(json.dumps(message, indent=3))
+    def set_attribute_from_message(self, message, attribute_name, key_list):
+        def get_nested_value(dct, keys):
+            for key in keys:
+                try:
+                    dct = dct[key]
+                except (KeyError, TypeError):
+                    return None
+            return dct
 
+        value = get_nested_value(message, key_list)
+        if value is not None:
+            setattr(self, attribute_name, value)
+
+    def save_attribute_from_message(self, message):
+        attributes_to_set = [
+            ("completion_trigger_characters", ["result", "capabilities", "completionProvider", "triggerCharacters"]),
+            ("completion_resolve_provider", ["result", "capabilities", "completionProvider", "resolveProvider"]),
+            ("rename_prepare_provider", ["result", "capabilities", "renameProvider", "prepareProvider"]),
+            ("code_action_provider", ["result", "capabilities", "codeActionProvider"]),
+            ("code_action_kinds", ["result", "capabilities", "codeActionProvider", "codeActionKinds"]),
+            ("code_format_provider", ["result", "capabilities", "documentFormattingProvider"]),
+            ("signature_help_provider", ["result", "capabilities", "signatureHelpProvider"]),
+            ("workspace_symbol_provider", ["result", "capabilities", "workspaceSymbolProvider"]),
+            ("inlay_hint_provider", ["result", "capabilities", "inlayHintProvider", "resolveProvider"]),
+            ("save_include_text", ["result", "capabilities", "textDocumentSync", "save", "includeText"]),
+            ("text_document_sync", ["result", "capabilities", "textDocumentSync"])]
+
+        for attr, path in attributes_to_set:
+            self.set_attribute_from_message(message, attr, path)
+
+        if isinstance(self.text_document_sync, dict):
+            self.text_document_sync = self.text_document_sync.get("change", self.text_document_sync)
+
+    def send_initialize_response(self, message):
+        self.sender.send_notification("initialized", {}, init=True)
+
+        self.sender.send_notification("workspace/didChangeConfiguration", self.get_server_workspace_change_configuration(), init=True)
+
+        self.sender.initialized.set()
+
+    def handle_workspace_message(self, message):
+        if message["method"] == "workspace/configuration":
+            self.handle_workspace_configuration_request(message["method"], message["id"], message["params"])
+        elif message["method"] == "workspace/applyEdit":
+            eval_in_emacs("lsp-bridge-workspace-apply-edit", message["params"]["edit"])
+            self.sender.send_response(message["id"], { "applied": True })
+
+    def handle_id_message(self, message):
         if "id" in message:
             if message["id"] == self.initialize_id:
                 # STEP 2: tell LSP server that client is ready.
                 # We need wait LSP server response 'initialize', then we send 'initialized' notification.
-                try:
-                    # We pick up completion trigger characters from server.
-                    # But some LSP server haven't this value, such as html/css LSP server.
-                    self.completion_trigger_characters = message["result"]["capabilities"]["completionProvider"]["triggerCharacters"]
-                except Exception:
-                    pass
-
-                try:
-                    self.completion_resolve_provider = message["result"]["capabilities"]["completionProvider"]["resolveProvider"]
-                except Exception:
-                    pass
-
-                try:
-                    self.rename_prepare_provider = message["result"]["capabilities"]["renameProvider"]["prepareProvider"]
-                except Exception:
-                    pass
-
-                try:
-                    self.code_action_provider = message["result"]["capabilities"]["codeActionProvider"]
-                    self.code_action_kinds = message["result"]["capabilities"]["codeActionProvider"]["codeActionKinds"]
-                except Exception:
-                    pass
-
-                try:
-                    self.code_format_provider = message["result"]["capabilities"]["documentFormattingProvider"]
-                except Exception:
-                    pass
-
-                try:
-                    self.signature_help_provider = message["result"]["capabilities"]["signatureHelpProvider"]
-                except Exception:
-                    pass
-
-                try:
-                    self.workspace_symbol_provider = message["result"]["capabilities"]["workspaceSymbolProvider"]
-                except Exception:
-                    pass
-
-                try:
-                    self.inlay_hint_provider = message["result"]["capabilities"]["inlayHintProvider"]["resolveProvider"]
-                except Exception:
-                    pass
-
-                try:
-                    text_document_sync = message["result"]["capabilities"]["textDocumentSync"]
-                    if isinstance(text_document_sync, int):
-                        self.text_document_sync = text_document_sync
-                    elif isinstance(text_document_sync, dict):
-                        self.text_document_sync = text_document_sync["change"]
-                except Exception:
-                    pass
-
-                try:
-                    self.save_include_text = message["result"]["capabilities"]["textDocumentSync"]["save"]["includeText"]
-                except Exception:
-                    pass
-
-                self.sender.send_notification("initialized", {}, init=True)
+                self.save_attribute_from_message(message)
 
                 # STEP 3: Configure LSP server parameters.
                 # After 'initialized' message finish, we should send 'workspace/didChangeConfiguration' notification.
                 # The setting parameters of each language server are different.
-                self.sender.send_notification("workspace/didChangeConfiguration",
-                                              self.get_server_workspace_change_configuration(), init=True)
-
-                self.sender.initialized.set()
+                self.send_initialize_response(message)
             else:
                 if "method" not in message and message["id"] in self.request_dict:
                     handler = self.request_dict[message["id"]]
@@ -662,11 +649,19 @@ class LspServer:
                         response=message["result"],
                     )
                 else:
-                    if message["method"] == "workspace/configuration":
-                        self.handle_workspace_configuration_request(message["method"], message["id"], message["params"])
-                    elif message["method"] == "workspace/applyEdit":
-                        eval_in_emacs("lsp-bridge-workspace-apply-edit", message["params"]["edit"])
-                        self.sender.send_response(message["id"], { "applied": True })
+                    self.handle_workspace_message(message)
+
+    def handle_recv_message(self, message: dict):
+        if "error" in message:
+            self.handle_error_message(message)
+            return
+
+        self.record_message(message)
+        self.handle_diagnostics_message(message)
+        self.handle_log_message(message)
+        self.handle_id_message(message)
+
+        logger.debug(json.dumps(message, indent=3))
 
     def close_file(self, filepath):
         # Send didClose notification when client close file.

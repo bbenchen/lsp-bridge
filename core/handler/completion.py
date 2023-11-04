@@ -5,6 +5,7 @@ from functools import cmp_to_key
 from core.handler import Handler
 from core.utils import *
 
+
 class CompletionTriggerKind(Enum):
     Invoked = 1
     TriggerCharacter = 2
@@ -19,7 +20,7 @@ class Completion(Handler):
     def process_request(self, lsp_server, position, char, prefix, version) -> dict:
         self.method_server = lsp_server
         self.method_server_name = self.method_server.server_info["name"]
-        
+
         if char in self.method_server.completion_trigger_characters:
             context = dict(triggerCharacter=char,
                            triggerKind=CompletionTriggerKind.TriggerCharacter.value)
@@ -31,113 +32,126 @@ class Completion(Handler):
         return dict(position=position, context=context)
 
     def parse_sort_value(self, sort_text):
-        if sort_text == "":
-            return sort_text
-        else:
-            sort_text = ''.join(c for c in sort_text if c.isdigit() or c == '.')
+        return ''.join(c for c in sort_text if c.isdigit() or c == '.').rstrip('.')
 
-            if sort_text.endswith("."):
-                sort_text = sort_text[:-1]
-
-            return sort_text
-    
     def compare_candidates(self, x, y):
         prefix = self.prefix.lower()
-        x_label : str = x["label"].lower()
-        y_label : str = y["label"].lower()
-        x_icon : str = x["icon"]
-        y_icon : str = y["icon"]
-        x_sort_text : str = self.parse_sort_value(x["sortText"])
-        y_sort_text : str = self.parse_sort_value(y["sortText"])
-        x_include_prefix = x_label.startswith(prefix)
-        y_include_prefix = y_label.startswith(prefix)
-        x_method_name = x_label.split('(')[0]
-        y_method_name = y_label.split('(')[0]
+        x_label, y_label = x["label"].lower(), y["label"].lower()
+        x_icon, y_icon = x["icon"], y["icon"]
+        x_score, y_score = x["score"], y["score"]
+        x_sort_text, y_sort_text = map(self.parse_sort_value, (x["sortText"], y["sortText"]))
+        x_include_prefix, y_include_prefix = x_label.startswith(prefix), y_label.startswith(prefix)
+        x_method_name, y_method_name = x_label.split('(')[0], y_label.split('(')[0]
 
-        # 1. Sort file by sortText, sortText is provided by LSP server.
-        if x_sort_text != "" and y_sort_text != "" and x_sort_text != y_sort_text:
-            if x_sort_text < y_sort_text:
-                return -1
-            elif x_sort_text > y_sort_text:
-                return 1
-        # 2. Sort by prefix.
-        elif x_include_prefix and not y_include_prefix:
-            return -1
-        elif y_include_prefix and not x_include_prefix:
-            return 1
-        # 3. Sort by method name if both candidates are method.
-        elif x_icon == "method" and y_icon == "method" and x_method_name != y_method_name:
-            if x_method_name < y_method_name:
-                return -1
-            elif x_method_name > y_method_name:
-                return 1
-        # 4. Sort by length.
-        elif len(x_label) < len(y_label):
-            return -1
-        elif len(x_label) > len(y_label):
-            return 1
+        # Sort file by score, score is provided by LSP server.
+        if x_score != y_score:
+            return 1 if x_score < y_score else -1
+
+        # Sort file by sortText, sortText is provided by LSP server.
+        if x_sort_text and y_sort_text and x_sort_text != y_sort_text:
+            return -1 if x_sort_text < y_sort_text else 1
+
+        # Sort by prefix.
+        if x_include_prefix != y_include_prefix:
+            return -1 if x_include_prefix else 1
+
+        # Sort by method name if both candidates are method.
+        if x_icon == y_icon == "method" and x_method_name != y_method_name:
+            return -1 if x_method_name < y_method_name else 1
+
+        # Sort by length.
+        return -1 if len(x_label) < len(y_label) else (1 if len(x_label) > len(y_label) else 0)
+
+    def get_fuzzy_option(self):
+        for server in self.file_action.get_match_lsp_servers("completion"):
+            if server.server_name.endswith("#" + self.method_server_name):
+                return server.server_info.get("incomplete-fuzzy-match")
+
+        return False
+
+    def get_display_new_text(self):
+        for server in self.file_action.get_match_lsp_servers("completion"):
+            if server.server_info.get("displayNewText", False):
+                return True
+
+        return False
+
+    def get_display_label(self, item, display_new_text):
+        label = item["label"]
+        detail = item.get("detail", "")
+
+        # Get display label.
+        if detail.strip() != "":
+            detail_label = f"{label} => {detail}"
         else:
-            return 0
-    
+            detail_label = label
+
+        try:
+            if "\u2026" in label and "(" in label:
+                # Optimizing for Rust
+                # When finding an ellipsis in 'label'
+                # replace 'fn' with function name in 'label'
+                function_name = label.split('(')[0]
+                detail_label = re.sub(r'\bfn\b', function_name, detail)
+        except:
+            pass
+
+        if len(detail_label) > self.file_action.display_label_max_length:
+            display_label = detail_label[:self.file_action.display_label_max_length] + " ..."
+        else:
+            display_label = detail_label
+
+        if display_new_text:
+            text_edit = item.get("textEdit", None)
+            if text_edit is not None:
+                display_label = text_edit.get("newText", None)
+
+        return display_label
+
     def process_response(self, response: dict) -> None:
         # Get completion items.
         completion_candidates = []
-        self.sort_dict = {}
         items = {}
 
         if response is not None:
-            item_index = 0
-            
-            fuzzy = False
-            for server in self.file_action.get_match_lsp_servers("completion"):
-                if server.server_name.endswith("#" + self.method_server_name):
-                    fuzzy = server.server_info.get("incomplete-fuzzy-match")
-                    break
-                    
+            # Get value of 'incomplete-fuzzy-match' from lsp server config file.
+            fuzzy = self.get_fuzzy_option()
+
             # Some LSP server, such as Wen, need assign textEdit/newText to display-label.
-            display_new_text = False
-            for server in self.file_action.get_match_lsp_servers("completion"):
-                if server.server_info.get("displayNewText", False):
-                    display_new_text = True
-                    break
-            
+            display_new_text = self.get_display_new_text()
+
             for item in response["items"] if "items" in response else response:
                 kind = KIND_MAP[item.get("kind", 0)].lower()
                 label = item["label"]
                 detail = item.get("detail", "")
-                
-                # We always need filter label with input prefix and don't care isIncomplete whether is True or False.
-                # If some LSP server's `incomplete-fuzzy-match` option is True, we filter label with fuzzy algorithm.
-                if not string_match(label.lower(), self.prefix.lower(), fuzzy=fuzzy):
+
+                # NOTE:
+                # If lsp server contain 'incomplete-fuzzy-match' option and it's True, we filter 'label' with fuzzy algorithm.
+                # Otherwise, don't filter 'label' with 'prefix', such as we input "std::" in c++, all candidate's prefix is not "::"
+                if fuzzy and not string_match(label.lower(), self.prefix.lower(), fuzzy=fuzzy):
                     continue
-                
+
                 annotation = kind if kind != "" else detail
 
                 # The key keyword combines the values ​​of 'label' and 'detail'
                 # to handle different libraries provide the same function.
                 key = f"{label}_{detail}"
-                display_label = label[:self.file_action.display_label_max_length] + " ..." if len(label) > self.file_action.display_label_max_length else label
 
-                if display_new_text:
-                    text_edit = item.get("textEdit", None)
-                    if text_edit is not None:
-                        display_label = text_edit.get("newText", None)
-
+                # Build candidate.
                 candidate = {
                     "key": key,
                     "icon": annotation,
                     "label": label,
-                    "display-label": display_label,
+                    "display-label": self.get_display_label(item, display_new_text),
                     "deprecated": 1 in item.get("tags", []),
                     "insertText": item.get('insertText', None),
                     "insertTextFormat": item.get("insertTextFormat", ''),
                     "textEdit": item.get("textEdit", None),
+                    "score": item.get("score", 1000),
                     "sortText": item.get("sortText", ""),
                     "server": self.method_server_name,
                     "backend": "lsp"
                 }
-
-                self.sort_dict[key] = item.get("sortText", "")
 
                 if self.file_action.enable_auto_import:
                     candidate["additionalTextEdits"] = item.get("additionalTextEdits", [])
@@ -145,8 +159,6 @@ class Completion(Handler):
                 completion_candidates.append(candidate)
 
                 items[key] = item
-
-                item_index += 1
 
             self.file_action.completion_items[self.method_server_name] = items
 

@@ -282,7 +282,65 @@
 (define-minor-mode acm-mode
   "LSP Bridge mode."
   :keymap acm-mode-map
-  :init-value nil)
+  :init-value nil
+  ;; Set override map, avoid some language mode map conflict with acm-mode map.
+  (acm-overriding-key-setup))
+
+(defun acm-hide ()
+  (interactive)
+  (let* ((completion-menu-is-show-p (acm-frame-visible-p acm-menu-frame))
+         (candidate-info (acm-menu-current-candidate))
+         (backend (plist-get candidate-info :backend)))
+    ;; Turn off `acm-mode'.
+    (acm-mode -1)
+
+    ;; Hide menu frame.
+    (acm-frame-hide-frame acm-menu-frame)
+
+    ;; Hide doc frame.
+    (acm-doc-hide)
+
+    ;; Turn off acm filter.
+    (acm-filter-off t)
+
+    ;; Clean `acm-menu-max-length-cache'.
+    (setq acm-menu-max-length-cache 0)
+
+    (when acm-preview-overlay
+      (if (not (eq this-command 'acm-hide))
+          ;; if `acm-hide' is called as command, not insert
+          (acm-complete t)
+        (delete-overlay acm-preview-overlay)
+        (setq acm-preview-overlay nil)))
+
+    ;; Remove hook of `acm--pre-command'.
+    (remove-hook 'pre-command-hook #'acm--pre-command 'local)
+
+    ;; If completion menu is show, clean backend cache.
+    ;; Don't clean backend cache if menu is hide, to make sure completion menu have candidate when call command `lsp-bridge-popup-complete-menu'.
+    (when completion-menu-is-show-p
+      (when-let* ((backend-clean (intern-soft (format "acm-backend-%s-clean" backend)))
+                  (fp (fboundp backend-clean)))
+        (funcall backend-clean)))
+
+    ;; Remove override map when hide acm menu.
+    (acm-overriding-key-remove)))
+
+(defun acm-overriding-key-setup ()
+  "Some key define in language mode map will conflict with acm-mode map.
+
+So we use `minor-mode-overriding-map-alist' to override key, make sure all keys in acm-mode can response."
+  (when (bound-and-true-p haskell-indentation-mode)
+    (let ((override-map (make-sparse-keymap)))
+      (define-key override-map [?\C-m] 'acm-complete)
+      (set (make-local-variable 'minor-mode-overriding-map-alist)
+           `((haskell-indentation-mode . ,override-map))))))
+
+(defun acm-overriding-key-remove ()
+  "We need remove override acm-mode keys, to make sure language mode key can work after acm menu hide."
+  (when (bound-and-true-p haskell-indentation-mode)
+    (set (make-local-variable 'minor-mode-overriding-map-alist)
+         (assq-delete-all 'haskell-indentation-mode minor-mode-overriding-map-alist))))
 
 (defun acm-match-symbol-p (pattern sym)
   "Return non-nil if SYM is matching an element of the PATTERN list."
@@ -606,43 +664,6 @@ The key of candidate will change between two LSP results."
                 (acm-reset-colors)))
   (advice-add #'load-theme :after #'acm-reset-colors))
 
-(defun acm-hide ()
-  (interactive)
-  (let* ((completion-menu-is-show-p (acm-frame-visible-p acm-menu-frame))
-         (candidate-info (acm-menu-current-candidate))
-         (backend (plist-get candidate-info :backend)))
-    ;; Turn off `acm-mode'.
-    (acm-mode -1)
-
-    ;; Hide menu frame.
-    (acm-frame-hide-frame acm-menu-frame)
-
-    ;; Hide doc frame.
-    (acm-doc-hide)
-
-    ;; Turn off acm filter.
-    (acm-filter-off t)
-
-    ;; Clean `acm-menu-max-length-cache'.
-    (setq acm-menu-max-length-cache 0)
-
-    (when acm-preview-overlay
-      (if (not (eq this-command 'acm-hide))
-          ;; if `acm-hide' is called as command, not insert
-          (acm-complete t)
-        (delete-overlay acm-preview-overlay)
-        (setq acm-preview-overlay nil)))
-
-    ;; Remove hook of `acm--pre-command'.
-    (remove-hook 'pre-command-hook #'acm--pre-command 'local)
-
-    ;; If completion menu is show, clean backend cache.
-    ;; Don't clean backend cache if menu is hide, to make sure completion menu have candidate when call command `lsp-bridge-popup-complete-menu'.
-    (when completion-menu-is-show-p
-      (when-let* ((backend-clean (intern-soft (format "acm-backend-%s-clean" backend)))
-                  (fp (fboundp backend-clean)))
-        (funcall backend-clean)))))
-
 (defun acm-running-in-wayland-native ()
   (and (eq window-system 'pgtk)
        (fboundp 'pgtk-backend-display-class)
@@ -797,7 +818,7 @@ The key of candidate will change between two LSP results."
                              (acm-indent-pixel
                               (if (equal acm-string-width-function 'string-pixel-width)
                                   (- (+ acm-menu-max-length-cache (* 20 (string-pixel-width " "))) item-length)
-                                (ceiling (* (window-font-width) (- (+ acm-menu-max-length-cache 20) item-length)))))))
+                                (ceiling (* (frame-char-width) (- (+ acm-menu-max-length-cache 20) item-length)))))))
                ;; Render annotation color.
                (propertize annotation-text 'face annotation-face)
                ;; Return char.
@@ -831,7 +852,7 @@ The key of candidate will change between two LSP results."
          (acm-frame-height (frame-pixel-height acm-menu-frame))
          (cursor-x (car acm-menu-frame-popup-position))
          (cursor-y (cdr acm-menu-frame-popup-position))
-         (offset-x (* (window-font-width) acm-icon-width))
+         (offset-x (* (frame-char-width) acm-icon-width))
          (offset-y (line-pixel-height))
          (acm-frame-x (if (> (+ cursor-x acm-frame-width) emacs-width)
                           (max (- cursor-x acm-frame-width) offset-x)
