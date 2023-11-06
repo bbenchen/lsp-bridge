@@ -96,6 +96,7 @@
 (require 'lsp-bridge-org-babel)
 (require 'lsp-bridge-inlay-hint)
 (require 'lsp-bridge-dart)
+(require 'lsp-bridge-semantic-tokens)
 
 (defgroup lsp-bridge nil
   "LSP-Bridge group."
@@ -183,6 +184,12 @@ After set `lsp-bridge-completion-obey-trigger-characters-p' to nil, you need use
 
 (defcustom lsp-bridge-popup-documentation-buffer " *lsp-bridge-hover*"
   "Buffer for display hover information."
+  :type 'string
+  :safe #'stringp
+  :group 'lsp-bridge)
+
+(defcustom lsp-bridge-buffer-documentation-buffer "*lsp-bridge-doc*"
+  "Buffer for display documentation information."
   :type 'string
   :safe #'stringp
   :group 'lsp-bridge)
@@ -1696,9 +1703,13 @@ Off by default."
                                  (acm-backend-lsp-position-to-point bound-start)
                                  (acm-backend-lsp-position-to-point bound-end))))
 
+(defun lsp-bridge-show-documentation ()
+  (interactive)
+  (lsp-bridge-call-file-api "hover" (lsp-bridge--position) "buffer"))
+
 (defun lsp-bridge-popup-documentation ()
   (interactive)
-  (lsp-bridge-call-file-api "hover" (lsp-bridge--position)))
+  (lsp-bridge-call-file-api "hover" (lsp-bridge--position) "popup"))
 
 (defun lsp-bridge-signature-help-fetch ()
   (interactive)
@@ -1783,6 +1794,22 @@ Off by default."
   ;; Flash define line.
   (lsp-bridge-flash-line))
 
+(defun lsp-bridge-switch-to-documentation-buffer (norecord)
+  (interactive)
+  (switch-to-buffer-other-window
+   (get-buffer-create lsp-bridge-buffer-documentation-buffer) norecord))
+
+(defun lsp-bridge-show-documentation--callback (value)
+  (let ((buffer (get-buffer-create lsp-bridge-buffer-documentation-buffer)))
+    (with-current-buffer buffer
+      (read-only-mode -1)
+      (erase-buffer)
+      (insert value)
+      (setq-local truncate-lines nil)
+      (acm-markdown-render-content t)
+      (read-only-mode 1))
+    (display-buffer buffer 'display-buffer-reuse-window)))
+
 (defvar lsp-bridge-popup-documentation-frame nil)
 
 (defun lsp-bridge-popup-documentation-scroll-up (&optional arg)
@@ -1797,7 +1824,7 @@ Off by default."
     (with-selected-frame lsp-bridge-popup-documentation-frame
       (apply #'scroll-down-command arg))))
 
-(defun lsp-bridge-popup-documentation--show (value)
+(defun lsp-bridge-popup-documentation--callback (value)
   (let ((emacs-frame (or acm-frame--emacs-frame (selected-frame))))
     (with-current-buffer (get-buffer-create lsp-bridge-popup-documentation-buffer)
       (read-only-mode -1)

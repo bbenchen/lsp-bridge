@@ -10,7 +10,8 @@ class Hover(Handler):
     name = "hover"
     method = "textDocument/hover"
 
-    def process_request(self, position) -> dict:
+    def process_request(self, position, show_style) -> dict:
+        self.show_style = show_style
         return dict(position=position)
 
     def parse_hover_contents(self, contents, render_strings):
@@ -47,4 +48,8 @@ class Hover(Handler):
         contents = response["contents"]
         render_string = self.parse_hover_contents(contents, [])
 
-        eval_in_emacs("lsp-bridge-popup-documentation--show", render_string)
+        if self.show_style == "popup":
+            callback = "lsp-bridge-popup-documentation--callback"
+        else:
+            callback = "lsp-bridge-show-documentation--callback"
+        eval_in_emacs(callback, render_string)
