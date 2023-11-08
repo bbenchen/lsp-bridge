@@ -227,6 +227,24 @@ class FileAction:
         else:
             self.send_server_request(self.single_server, "completion", self.single_server, position, before_char, prefix, version)
 
+    def try_formatting(self, *args, **kwargs):
+        if self.multi_servers:
+            for lsp_server in self.multi_servers.values():
+                if lsp_server.server_info["name"] in self.multi_servers_info["formatting"]:
+                    self.send_server_request(lsp_server, "formatting", *args, **kwargs)
+        else:
+            self.send_server_request(self.single_server, "formatting", *args, **kwargs)
+
+    def try_code_action(self, *args, **kwargs):
+        self.code_action_counter = 0
+
+        if self.multi_servers:
+            for lsp_server in self.multi_servers.values():
+                if lsp_server.server_info["name"] in self.multi_servers_info["code_action"]:
+                    self.send_code_action_request(lsp_server, *args, **kwargs)
+        else:
+            self.send_code_action_request(self.single_server, *args, **kwargs)
+
     def change_cursor(self, position):
         # Record change cursor time.
         self.last_change_cursor_time = time.time()
@@ -330,16 +348,6 @@ class FileAction:
 
         return code_actions
 
-    def try_code_action(self, range_start, range_end, action_kind):
-        self.code_action_counter = 0
-
-        if self.multi_servers:
-            for lsp_server in self.multi_servers.values():
-                if lsp_server.server_info["name"] in self.multi_servers_info["code_action"]:
-                    self.send_code_action_request(lsp_server, range_start, range_end, action_kind)
-        else:
-            self.send_code_action_request(self.single_server, range_start, range_end, action_kind)
-
     def send_code_action_request(self, lsp_server, range_start, range_end, action_kind):
         lsp_server_name = lsp_server.server_info["name"]
         self.send_server_request(
@@ -365,7 +373,11 @@ class FileAction:
                     method_server = self.single_server
 
                 if method_server.completion_resolve_provider:
-                    self.send_server_request(method_server, "completion_item_resolve", item_key, server_name, self.completion_items[server_name][item_key])
+                    self.send_server_request(method_server,
+                                             "completion_item_resolve",
+                                             item_key,
+                                             server_name,
+                                             self.completion_items[server_name][item_key])
                 else:
                     item = self.completion_items[server_name][item_key]
 
@@ -392,8 +404,7 @@ class FileAction:
                              "additionalTextEdits": additional_text_edits,
                              "documentation": documentation
                          },
-                         get_lsp_file_host()
-                         )
+                         get_lsp_file_host())
 
 
     def rename_file(self, old_filepath, new_filepath):
