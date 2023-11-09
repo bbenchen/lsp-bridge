@@ -2,9 +2,14 @@
 
 # lsp-bridge
 
-lsp-bridge 的目标是实现 Emacs 生态中性能最快的 LSP 客户端。
+lsp-bridge 的目标是使用多线程技术实现 Emacs 生态中性能最快的 LSP 客户端。
 
-lsp-bridge 使用 Python 多线程技术在 Emacs 和 LSP 服务器之间构建高速缓存， 在提供行云流水的代码补全体验的前提下， 保证永远不会卡住 Emacs。
+lsp-bridge 的优势：
+1. 速度超快： 把 LSP 的请求等待和数据分析都隔离到外部进程， 不会因为 LSP Server 返回延迟或大量数据触发 GC 而卡住 Emacs
+2. 远程补全： 内置远程服务器代码补全， 支持密码、 公钥等多种登录方式， 支持 tramp 协议， 支持 SSH 多级堡垒机跳转
+3. 开箱即用： 安装后立即可以使用， 不需要额外的配置， 不需要自己折腾补全前端、 补全前端以及多后端融合等配置
+4. 多服务器融合： 可以同时使用多个 LSP Server 为同一个文件提供服务， 例如 Python， Pyright 提供代码补全， Ruff 提供诊断和格式化
+5. 灵活的自定义： 自定义 LSP Server 选项只需要一个 JSON 文件即可， 简单的几行规则就可以让不同的项目使用不同 JSON 配置
 
 <img src="./screenshot.png">
 
@@ -18,10 +23,7 @@ lsp-bridge 使用 Python 多线程技术在 Emacs 和 LSP 服务器之间构建�
 
 1. 安装 Emacs 28 及以上版本
 2. 安装 Python 依赖: `pip3 install epc orjson sexpdata six paramiko rapidfuzz` (orjson 是可选的， orjson 基于 Rust， 提供更快的 JSON 解析性能)
-3. 安装 Elisp 依赖:
-
-- [markdown-mode](https://github.com/jrblevin/markdown-mode)
-- [yasnippet](https://github.com/joaotavora/yasnippet)
+3. 安装 Elisp 依赖: [markdown-mode](https://github.com/jrblevin/markdown-mode), [yasnippet](https://github.com/joaotavora/yasnippet)
 
 4. 用 `git clone` 下载此仓库， 并替换下面配置中的 load-path 路径
 5. 把下面代码加入到你的配置文件 ~/.emacs 中：
@@ -66,9 +68,9 @@ lsp-bridge 开箱即用， 安装好语言对应的 [LSP 服务器](https://gith
 
 `lsp-bridge`能像 VSCode 一样在远程服务器文件上进行代码语法补全。 配置步骤如下：
 
-1. 在远程服务器安装 lsp-bridge 和相应的 LSP Server。
-2. 启动 lsp-bridge： `python3 lsp-bridge/lsp_bridge.py`。
-3. 用`lsp-bridge-open-remote-file`命令打开文件， 输入用户名、 IP、 SSH 端口(默认 22) 和路径， 例如`user@ip:[ssh_port]:/path/file`。 启用`lsp-bridge-enable-with-tramp`选项可以直接打开 tramp 文件， 并用 lsp-bridge 的高效算法代替 tramp， 实现流畅补全。
+1. 在远程服务器安装 lsp-bridge 和相应的 LSP Server
+2. 启动 lsp-bridge： `python3 lsp-bridge/lsp_bridge.py`
+3. 用`lsp-bridge-open-remote-file`命令打开文件， 输入用户名、 IP、 SSH 端口(默认 22) 和路径， 例如`user@ip:[ssh_port]:/path/file`。 启用`lsp-bridge-enable-with-tramp`选项可以直接打开 tramp 文件， 并用 lsp-bridge 的高效算法代替 tramp， 实现流畅补全
 
 远程补全原理：
 
@@ -80,6 +82,7 @@ lsp-bridge 开箱即用， 安装好语言对应的 [LSP 服务器](https://gith
 
 1. 若补全菜单未显示， 检查远程服务器的`lsp_bridge.py`输出， 可能是 LSP Server 未完全安装
 2. lsp-bridge 会用`~/.ssh`的第一个 *.pub 文件作为登录凭证。 如果公钥登录失败， 会要求输入密码。 lsp-bridge 不会存储密码， 建议用公钥登录以避免重复输入密码
+3. 你需要在远程服务器完整的下载整个 lsp-bridge git 仓库， 并切换到 lsp-bridge 目录来启动 `lsp_bridge.py`， `lsp_bridge.py` 需要其他文件来保证正常工作， 不能只把 `lsp_bridge.py` 文件拷贝到其他目录来启动
 
 ## 按键
 
@@ -166,6 +169,7 @@ lsp-bridge 针对许多语言都提供 2 个以上的语言服务器支持， �
 - `lsp-bridge-python-command`: Python 命令的路径, 如果你用 `conda`， 你也许会定制这个选项。 Windows 平台用的是 `python.exe` 而不是 `python3`, 如果 lsp-bridge 不能工作， 可以尝试改成 `python3`
 - `lsp-bridge-complete-manually`: 只有当用户手动调用 `lsp-bridge-popup-complete-menu` 命令的时候才弹出补全菜单， 默认关闭
 - `lsp-bridge-enable-with-tramp`: 打开这个选项后， lsp-bridge 会对 tramp 打开的文件提供远程补全支持， 需要提前在服务端安装并启动 lsp_bridge.py, 注意的是这个选项只是用 tramp 打开文件， 并不会用 tramp 技术来实现补全， 因为 tramp 的实现原理有严重的性能问题
+- `lsp-bridge-remote-save-password`: 远程编辑时， 把密码保存到 netrc 文件， 默认关闭
 - `lsp-bridge-get-workspace-folder`: 在 Java 中需要把多个项目放到一个 Workspace 目录下， 才能正常进行定义跳转， 可以自定义这个函数， 函数输入是项目路径， 返回对应的 Workspace 目录
 - `lsp-bridge-default-mode-hooks`: 自动开启 lsp-bridge 的模式列表， 你可以定制这个选项来控制开启 lsp-bridge 的范围
 - `lsp-bridge-org-babel-lang-list`: 支持 org-mode 代码块补全的语言列表， 默认 nil 对于所有语言使用
@@ -407,8 +411,9 @@ lsp-bridge 每种语言的服务器配置存储在 [lsp-bridge/langserver](https
 请先阅读下面的文章:
 
 - [LSP 协议规范](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/)
-- [lsp-bridge 架构设计](https://manateelazycat.github.io/emacs/lsp/2022/05/12/lsp-bridge.html)
-- [为什么 lsp-bridge 不用 capf](https://manateelazycat.github.io/emacs/lsp/2022/06/26/why-lsp-bridge-not-use-capf.html)
+- [lsp-bridge 架构设计](https://manateelazycat.github.io/2022/05/12/lsp-bridge/)
+- [lsp-bridge 远程补全架构设计](https://manateelazycat.github.io/2023/03/31/lsp-bridge-remote-file/)
+- [为什么 lsp-bridge 不用 capf](https://manateelazycat.github.io/2022/06/26/why-lsp-bridge-not-use-capf/)
 - [lsp-bridge Wiki](https://github.com/manateelazycat/lsp-bridge/wiki)
 
 接着打开开发选项 `lsp-bridge-enable-log` ， happy hacking! ;)

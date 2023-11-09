@@ -3,9 +3,14 @@
 
 # lsp-bridge
 
-The goal of lsp-bridge is to implement the fastest LSP client in the Emacs ecosystem.
+The goal of lsp-bridge is use multi-thread technology to implement the fastest LSP client in the Emacs ecosystem.
 
-Using Python multithreading techniques, lsp-bridge builds a high-speed cache between Emacs and the LSP server, ensuring that Emacs never gets stuck while providing a smooth and seamless code completion experience.
+Advantages of lsp-bridge:
+1. Blazingly fast: Offload LSP request and data analysis to an external process, preventing Emacs from getting stuck due to delays or large data triggering garbage collection
+2. Remote Completion: Built-in support for remote server code completion, with various login methods such as passwords and public keys, supports tramp protocol and jump server
+3. Out of the box: Ready to use immediately after installation, no additional configuration required, no need to tweak with completion frontend, completion backend and multi-backend mix 
+4. Multiple Server Integration: Can simultaneously use multiple LSP servers to serve the same file, for example, Python can have Pyright for code completion and Ruff for diagnostics and formatting
+5. Flexible Customization: Customizing LSP server options is as simple as using a JSON file, allowing different projects to have different JSON configurations with just a few lines of rules
 
 <img src="./screenshot.png">
 
@@ -19,10 +24,7 @@ Using Python multithreading techniques, lsp-bridge builds a high-speed cache bet
 
 1. Install Emacs 28 or higher version
 2. Install Python dependencies: `pip3 install epc orjson sexpdata six paramiko rapidfuzz` (orjson is optional, orjson is based on Rust, providing faster JSON parsing performance)
-3. Install Elisp dependencies:
-
-- [markdown-mode](https://github.com/jrblevin/markdown-mode)
-- [yasnippet](https://github.com/joaotavora/yasnippet)
+3. Install Elisp dependencies: [markdown-mode](https://github.com/jrblevin/markdown-mode), [yasnippet](https://github.com/joaotavora/yasnippet)
 
 4. Download this repository using git clone, and replace the load-path path in the configuration below.
 5. Add the following code to your configuration file ~/.emacs:
@@ -82,6 +84,8 @@ Note:
 
 1. If the completion menu is not displayed, check the output of `lsp_bridge.py` on the remote server, it may be that the LSP Server is not fully installed.
 2. lsp-bridge will use the first *.pub file in `~/.ssh` as a login credential. If public key login fails, you will be asked to enter a password. lsp-bridge will not store the password, it is recommended to use public key login to avoid repeated password entry.
+3. To run lsp_bridge.py successfully you need to completely download the entire git repository of lsp-bridge on a remote server, and switch into its directory, lsp_bridge.py requires other files to function properly, so copying only the lsp_bridge.py file can't work
+
 
 ## Keymap
 
@@ -167,6 +171,7 @@ lsp-bridge provides support for more than two language servers for many language
 - `lsp-bridge-python-command`: The path of the python command, if you use `conda`, you may customize this option. Windows platform using `python.exe` rather than `python3`, if lsp-bridge can’t work, try set to `python3`
 - `lsp-bridge-complete-manually`: Only popup completion menu when user call `lsp-bridge-popup-complete-menu` command, default is nil
 - `lsp-bridge-enable-with-tramp`: When this option is enabled, lsp-bridge provides remote autocompletion support for files opened by tramp. It requires the lsp_bridge.py to be installed and started on the server side in advance. Note that this option only uses tramp to open files, it does not use tramp technology to implement autocompletion, because the implementation principle of tramp has serious performance issues.
+- `lsp-bridge-remote-save-password`: Saves the password for remote editing to the netrc file, disabled by default
 - `lsp-bridge-get-workspace-folder`: You need to put multiple project in a `workspace` directory in Java before you can jump function defintion normally. This function can be customized, the function input is the project path and returns the `workspace` directory corresponding
 - `lsp-bridge-default-mode-hooks`: The list of modes that automatically start lsp-bridge, you can customize this option to control the scope of starting lsp-bridge
 - `lsp-bridge-org-babel-lang-list`: list of language to support org-mode code block completion, nil enable all languages, default is nil
@@ -406,9 +411,10 @@ The following is the directory structure of the lsp-bridge project:
 
 Please read below articles first:
 
-- [LSP Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/)
-- [The Design of lsp-bridge](https://manateelazycat.github.io/emacs/lsp/2022/05/12/lsp-bridge.html)
-- [Why lsp-bridge not use capf](https://manateelazycat.github.io/emacs/lsp/2022/06/26/why-lsp-bridge-not-use-capf.html)
+- [LSP Protocol Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/)
+- [lsp-bridge Architecture Design](https://manateelazycat.github.io/2022/05/12/lsp-bridge/)
+- [lsp-bridge Remote Completion Architecture Design](https://manateelazycat.github.io/2023/03/31/lsp-bridge-remote-file/)
+- [Why lsp-bridge doesn't use capf](https://manateelazycat.github.io/2022/06/26/why-lsp-bridge-not-use-capf/)
 - [lsp-bridge Wiki](https://github.com/manateelazycat/lsp-bridge/wiki)
 
 Then turn on develop option `lsp-bridge-enable-log` and happy hacking! ;)

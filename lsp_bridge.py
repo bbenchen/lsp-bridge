@@ -215,7 +215,7 @@ class LspBridge:
                         ssh_port = 22
 
                 if server_username and ssh_port:
-                    self.host_names[server_host] = {"username": server_username, "ssh_port": ssh_port}
+                    self.host_names[server_host] = {"username": server_username, "ssh_port": ssh_port, "use_gssapi": False, "proxy_command": None}
 
                 try:
                     client_id = f"{server_host}:{REMOTE_FILE_ELISP_CHANNEL}"
@@ -240,14 +240,20 @@ class LspBridge:
             message_emacs("Please input valid path match rule: 'ip:/path/file'.")
 
     @threaded
-    def sync_tramp_remote(self, server_username, server_host, ssh_port, alias):
-        import paramiko
-        if alias:
+    def sync_tramp_remote(self, server_username, server_host, ssh_port, filename):
+        use_gssapi = False
+        proxy_command = None
+        alias = None
+        if not is_valid_ip(server_host):
+            alias = server_host
             if alias in self.host_names:
                 server_host = self.host_names[alias]["server_host"]
                 server_username = self.host_names[alias]["username"]
                 ssh_port = self.host_names[alias]["ssh_port"]
+                use_gssapi = self.host_names[alias]["use_gssapi"]
+                proxy_command = self.host_names[alias]["proxy_command"]
             else:
+                import paramiko
                 ssh_config = paramiko.SSHConfig()
                 ssh_config.parse(open(os.path.expanduser('~/.ssh/config')))
                 conf = ssh_config.lookup(alias)
@@ -255,8 +261,15 @@ class LspBridge:
                 server_host = conf.get('hostname', server_host)
                 server_username = conf.get('user', server_username)
                 ssh_port = conf.get('port', ssh_port)
+                use_gssapi = conf.get('gssapiauthentication', 'no') in ('yes')
+                proxy_command = conf.get('proxycommand', None)
 
-                self.host_names[alias] = {"server_host": server_host, "username": server_username, "ssh_port": ssh_port}
+                self.host_names[alias] = {"server_host": server_host, "username": server_username, "ssh_port": ssh_port, "use_gssapi": use_gssapi,
+                                          "proxy_command": proxy_command}
+
+        tramp_file_split = filename.rsplit(":", 1)
+        tramp_method = tramp_file_split[0] + ":"
+        file_path = tramp_file_split[1]
 
         if not server_username:
             if server_host in self.host_names:
@@ -270,7 +283,7 @@ class LspBridge:
             else:
                 ssh_port = 22
 
-        self.host_names[server_host] = {"username": server_username, "ssh_port": ssh_port}
+        self.host_names[server_host] = {"username": server_username, "ssh_port": ssh_port, "use_gssapi": use_gssapi, "proxy_command": proxy_command}
 
         try:
             client_id = f"{server_host}:{REMOTE_FILE_ELISP_CHANNEL}"
@@ -278,6 +291,8 @@ class LspBridge:
                 client = self.get_socket_client(server_host, REMOTE_FILE_ELISP_CHANNEL)
                 client.send_message("Connect")
                 message_emacs(f"Connect {server_username}@{server_host}#{ssh_port}...")
+
+            eval_in_emacs("lsp-bridge-update-tramp-file-info", filename, server_host, file_path, tramp_method)
 
         except paramiko.ssh_exception.ChannelException:
                 message_emacs(f"Connect {server_username}@{server_host}:{ssh_port} failed, please make sure `lsp_bridge.py` has start at server.")
@@ -398,7 +413,10 @@ class LspBridge:
                 self.host_names[server_host]["username"],
                 self.host_names[server_host]["ssh_port"],
                 server_port,
-                lambda message: self.receive_socket_message(message, server_port))
+                lambda message: self.receive_socket_message(message, server_port),
+                self.host_names[server_host]["use_gssapi"],
+                self.host_names[server_host]["proxy_command"]
+            )
             client.start()
 
             self.client_dict[client_id] = client
