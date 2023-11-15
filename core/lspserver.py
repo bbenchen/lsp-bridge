@@ -340,6 +340,9 @@ class LspServer:
                         }
                     },
                     "isPreferredSupport": True
+                },
+                "inlayHint": {
+                    "dynamicRegistration": False
                 }
             }
         })
@@ -617,6 +620,11 @@ class LspServer:
 
         if isinstance(self.text_document_sync, dict):
             self.text_document_sync = self.text_document_sync.get("change", self.text_document_sync)
+
+        # Some LSP server has inlayHint capability, but won't response inlayHintProvider in capability message.
+        # So we set `inlay_hint_provider` to True if found `forceInlayHint` option in config file.
+        if "forceInlayHint" in self.server_info and self.server_info["forceInlayHint"] is True:
+            self.inlay_hint_provider = True
 
     def send_initialize_response(self, message):
         self.sender.send_notification("initialized", {}, init=True)
