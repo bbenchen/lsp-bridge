@@ -732,14 +732,20 @@ So we build this macro to restore postion after code format."
        lsp-bridge-remote-file-flag))
 
 (defun lsp-bridge-get-buffer-file-name-text ()
+  (lsp-bridge-buffer-file-name buffer-file-name))
+
+(defun lsp-bridge-buffer-file-name (name)
   ;; `buffer-file-name' may contain face property, we need use `substring-no-properties' remove those face from buffer name.
-  (substring-no-properties buffer-file-name))
+  (when (stringp name)
+    (substring-no-properties name)))
 
 (defun lsp-bridge-get-buffer-truename (&optional filename)
   (if (lsp-bridge-is-remote-file)
       lsp-bridge-remote-file-path
-    (file-truename (or filename 
-                       (lsp-bridge-get-buffer-file-name-text)))))
+    (let ((name (or filename
+                    (lsp-bridge-get-buffer-file-name-text))))
+      (when name
+        (file-truename name)))))
 
 (defun lsp-bridge-get-match-buffer-by-remote-file (host path)
   (cl-dolist (buffer (buffer-list))
@@ -918,7 +924,9 @@ So we build this macro to restore postion after code format."
 (defun lsp-bridge-call-file-api-p ()
   (and lsp-bridge-mode
        (lsp-bridge-has-lsp-server-p)
-       acm-backend-lsp-server-command-exist
+       (if (boundp 'acm-backend-lsp-server-command-exist)
+           acm-backend-lsp-server-command-exist
+         t)
        (lsp-bridge-process-live-p)))
 
 (defun lsp-bridge-call-file-api (method &rest args)
@@ -1476,6 +1484,16 @@ So we build this macro to restore postion after code format."
                         (minibufferp))))
       (lsp-bridge-codeium-complete))
 
+    (when (and acm-enable-ctags
+               (lsp-bridge-process-live-p))
+      (unless (or (string-equal current-word "") (null current-word))
+        (if (lsp-bridge-is-remote-file)
+            (lsp-bridge-remote-send-func-request "ctags_complete"
+                                                 (list
+                                                  current-word
+                                                  (file-local-name (buffer-file-name))
+                                                  (1- (point))))
+          (lsp-bridge-call-async "ctags_complete" current-word (buffer-file-name) (1- (point))))))
 
     ;; Search sdcv dictionary.
     (when acm-enable-search-sdcv-words
@@ -1563,7 +1581,7 @@ So we build this macro to restore postion after code format."
                                  (or (null elt)
                                      (member (file-name-extension elt)
                                              lsp-bridge-search-words-prohibit-file-extensions)))
-                               (mapcar (lambda (b) (substring-no-properties (buffer-file-name b))) (buffer-list)))))
+                               (mapcar (lambda (b) (lsp-bridge-buffer-file-name (buffer-file-name b))) (buffer-list)))))
       (lsp-bridge-call-async "search_file_words_index_files" files))))
 
 (defun lsp-bridge-search-words-update (begin-pos end-pos change-text)
