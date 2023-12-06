@@ -53,6 +53,8 @@ lsp-bridge 的优势：
 
 1. 使用 lsp-bridge 时， 请先关闭其他补全插件， 比如 lsp-mode, eglot, company, corfu 等等， lsp-bridge 提供从补全后端、 补全前端到多后端融合的全套解决方案。
 2. lsp-bridge 除了提供 LSP 补全以外， 也提供了很多非 LSP 的补全后端， 包括文件单词、 路径、 Yas/Tempel、 TabNine、 Codeium、 Copilot、 Citre、 Tailwind、 Ctags 等补全后端， 如果你期望在某个模式提供这些补全， 请把对应的模式添加到 `lsp-bridge-default-mode-hooks` 
+3. 请不要对 lsp-bridge 执行 byte compile 或者 native comp， 会导致升级后， compile 后的版本 API 和最新版不一样， lsp-bridge 多线程设计， 不需要 compile 来加速
+4. 终端模式下， lsp-bridge 没法弹出补全菜单， 请使用 GUI 界面 (因为 Emacs 终端下缺乏像素级坐标 API 和跨窗口显示 API， 无法做到良好的补全体验)
 
 ## 本地使用
 
@@ -77,7 +79,7 @@ lsp-bridge 开箱即用， 安装好语言对应的 [LSP 服务器](https://gith
    - Port
    - GSSAPIAuthentication
    - ProxyCommand(当前只支持用 ProxyCommand 选项， 不支持 ProxyJump 选项)
-5. `(setq lsp-bridge-remote-start-automatically t)` 可以在打开 tramp 文件时自动启动远程机器(需要支持 bash)上的 lsp_bridge.py 进程，退出 emacs 时也会自动关闭。使用该功能时需要正确设置下列选项：
+5. `(setq lsp-bridge-remote-start-automatically t)` 可以在打开 tramp 文件时自动启动远程机器(需要支持 bash)上的 lsp_bridge.py 进程， 退出 emacs 时也会自动关闭。 使用该功能时需要正确设置下列选项：
    - lsp-bridge-remote-python-command: 远程机器上的 python 命令名
    - lsp-bridge-remote-python-file: 远程机器上 lsp_bridge.py 的路经
    - lsp-bridge-remote-log: 远程机器上 lsp_bridge.py 的 log 输出路经
@@ -245,6 +247,7 @@ lsp-bridge 针对许多语言都提供 2 个以上的语言服务器支持， �
 - `acm-backend-yas-candidates-number`: yasnippet 显示个数， 默认 2 个
 - `acm-backend-citre-keyword-complete`: 根据`acm-backend-citre-keywords-alist`定义的各个模式的关键字进行补全， 需要使能 citre 后才生效
 - `acm-backend-search-sdcv-words-dictionary`: 用于单词补全的 StarDict 词典， 默认是 `kdic-ec-11w`, 可以自定义为其他 StarDict 词典， 如果你的系统存在词典 `/usr/share/stardict/dic/stardict-oxford-gb-formated-2.4.2/oxford-gb-formated.ifo`, 你需要设置这个选项为 `/usr/share/stardict/dic/stardict-oxford-gb-formated-2.4.2/oxford-gb-formated`, 不需要包括 `.ifo` 扩展
+- `acm-backend-lsp-match-mode`: LSP 后端候选词过滤模式， 有 "normal", "prefix", "prefixCaseSensitive", "fuzzy" 三个选项， 默认是 "normal", 不对 LSP Server 返回候选词进行过滤
 - `acm-enable-preview`: 开启 Tab-and-Go completion， 当改变当前候选时， 可以预览候选， 并且后续输入会选择预览候选， 默认关闭
 
 ## 自定义语言服务器配置

@@ -53,8 +53,10 @@ Advantages of lsp-bridge:
 
 Please note:
 
-1. When using lsp-bridge, please first disable other completion plugins, such as lsp-mode, eglot, company, corfu, etc. lsp-bridge provides a complete solution from the completion backend, completion frontend to multi-backend integration.
-2. In addition to providing LSP completion, lsp-bridge also provides many non-LSP completion backends, including file words, paths, Yas/Tempel, TabNine, Codeium, Copilot, Citre, Tailwind, Ctags and other completion backends. If you expect to provide these completions in a certain mode, please add the corresponding mode to `lsp-bridge-default-mode-hooks`.
+1. When using lsp-bridge, please first disable other completion plugins, such as lsp-mode, eglot, company, corfu, etc. lsp-bridge provides a complete solution from the completion backend, completion frontend to multi-backend integration
+2. In addition to providing LSP completion, lsp-bridge also provides many non-LSP completion backends, including file words, paths, Yas/Tempel, TabNine, Codeium, Copilot, Citre, Tailwind, Ctags and other completion backends. If you expect to provide these completions in a certain mode, please add the corresponding mode to `lsp-bridge-default-mode-hooks`
+3. Please do not perform byte compilation or native compilation for lsp-bridge as it will result in a difference in API and the latest version after upgrading compiling afterwards, Lsp-bridge is designed with multi-threading that does not require compilation to speed it up
+4. In terminal mode, lsp-bridge cannot popup the completion menu, please use a GUI interface (because Emacs lacks pixel-level coordinate APIs and cross-window display APIs in terminals, resulting in an unsatisfactory completion experience)
 
 ## Local Usage
 
@@ -246,6 +248,7 @@ lsp-bridge provides support for more than two language servers for many language
 - `acm-backend-yas-candidates-number`: yasnippet display number， 2 by default
 - `acm-backend-citre-keyword-complete`: Completion is performed according to the keywords of each mode defined by `acm-backend-citre-keywords-alist`, which takes effect only after citre is enabled.
 - `acm-backend-search-sdcv-words-dictionary`: StarDict dictionary for word completion, default is `kdic-ec-11w`, you can replace it with StarDict dictionary path, example, if you have dictionary `/usr/share/stardict/dic/stardict-oxford-gb-formated-2.4.2/oxford-gb-formated.ifo`, you need set this value to `/usr/share/stardict/dic/stardict-oxford-gb-formated-2.4.2/oxford-gb-formated`, not include `.ifo` extension.
+- `acm-backend-lsp-match-mode`: The filtering mode for candidate words in LSP backend, there are three options: "normal", "prefix", "prefixCaseSensitive", and "fuzzy". By default it is normal. It does not filter the candidate words returned by LSP Server
 - `acm-enable-preview`: enable Tab-and-Go completion, commands like acm-select-* will select and preview other candidate and further input will then commit this candidate, disable by default
 
 ## Customize language server configuration
