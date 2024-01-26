@@ -14,10 +14,21 @@
       "runBuildScripts": true,
       "loadOutDirsFromCheck": true,
       "useRustcWrapperForBuildScripts": true,
-      "autoreload": true,
+      "autoreload": false,
       "buildScripts": {
-        "enable": true
-      }
+        "enable": true,
+        "rebuildOnSave": false,
+        "invocationLocation": "root",
+        "invocationStrategy": "once",
+        "overrideCommand": null
+        }
+      },
+    "checkOnSave": {
+      "enable": false,
+      "allTargets": true,
+      "features": "all",
+      "invocationLocation": "root",
+      "invocationStrategy": "once"
     },
     "completion": {
       "addCallParenthesis": true,
