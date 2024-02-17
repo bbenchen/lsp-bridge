@@ -151,6 +151,13 @@ Setting this to nil or 0 will turn off the indicator."
   :type 'number
   :group 'lsp-bridge)
 
+(defcustom lsp-bridge-remote-heartbeat-interval nil
+  "Interval for sending heartbeat to server in seconds.
+
+Setting this to nil or 0 will turn off the heartbeat mechanism."
+  :type 'number
+  :group 'lsp-bridge)
+
 (defcustom lsp-bridge-enable-mode-line t
   "Whether display LSP-bridge's server info in mode-line ."
   :type 'boolean
@@ -505,7 +512,7 @@ Possible choices are pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, 
     (groovy-mode .                                                               "groovy-language-server")
     (haskell-mode .                                                              "hls")
     (lua-mode .                                                                  "sumneko")
-    (markdown-mode .                                                             "vale-ls")    
+    (markdown-mode .                                                             "vale-ls")
     (dart-mode .                                                                 "dart-analysis-server")
     (scala-mode .                                                                "metals")
     ((js2-mode js-mode js-ts-mode rjsx-mode) .                                   "javascript")
@@ -535,6 +542,7 @@ Possible choices are pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, 
     (vhdl-mode .                                                                 "vhdl-tool")
     (svelte-mode .                                                               "svelteserver")
     (fsharp-mode .                                                               "fsautocomplete")
+    (beancount-mode .                                                            "beancount-language-server")
     )
   "The lang server rule for file mode."
   :type 'cons)
@@ -628,6 +636,7 @@ Possible choices are pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, 
     yaml-ts-mode-hook
     svelte-mode-hook
     fsharp-mode-hook
+    beancount-mode-hook
     )
   "The default mode hook to enable lsp-bridge."
   :type '(repeat variable))
@@ -974,33 +983,33 @@ So we build this macro to restore postion after code format."
        (lsp-bridge-process-live-p)))
 
 (defun lsp-bridge-call-file-api (method &rest args)
-  (if (file-remote-p (buffer-file-name))
-      (if (lsp-bridge-is-remote-file)
-          (lsp-bridge-remote-send-lsp-request method args)
+  (if (lsp-bridge-is-remote-file)
+      (lsp-bridge-remote-send-lsp-request method args)
+    (if (file-remote-p (buffer-file-name))
         (message "[LSP-Bridge] remote file \"%s\" is updating info... skip call %s."
-                 (buffer-file-name) method))
-    (when (lsp-bridge-call-file-api-p)
-      (if (and (boundp 'acm-backend-lsp-filepath)
-               (file-exists-p acm-backend-lsp-filepath))
-          (if lsp-bridge-buffer-file-deleted
-              ;; If buffer's file create again (such as switch branch back), we need save buffer first,
-              ;; send the LSP request after the file is changed next time.
-              (progn
-                (save-buffer)
-                (setq-local lsp-bridge-buffer-file-deleted nil)
-                (message "[LSP-Bridge] %s is back, will send the %s LSP request after the file is changed next time." acm-backend-lsp-filepath method))
-            (when (and acm-backend-lsp-filepath
-                       (not (string-equal acm-backend-lsp-filepath "")))
-              (lsp-bridge-deferred-chain
-                (lsp-bridge-epc-call-deferred lsp-bridge-epc-process (read method) (append (list acm-backend-lsp-filepath) args)))))
-        ;; We need send `closeFile' request to lsp server if we found buffer's file is not exist,
-        ;; it is usually caused by switching branch or other tools to delete file.
-        ;;
-        ;; We won't send any lsp request until buffer's file create again.
-        (unless lsp-bridge-buffer-file-deleted
-          (lsp-bridge-close-buffer-file)
-          (setq-local lsp-bridge-buffer-file-deleted t)
-          (message "[LSP-Bridge] %s is not exist, stop send the %s LSP request until file create again." acm-backend-lsp-filepath method))))))
+                 (buffer-file-name) method)
+      (when (lsp-bridge-call-file-api-p)
+        (if (and (boundp 'acm-backend-lsp-filepath)
+                 (file-exists-p acm-backend-lsp-filepath))
+            (if lsp-bridge-buffer-file-deleted
+                ;; If buffer's file create again (such as switch branch back), we need save buffer first,
+                ;; send the LSP request after the file is changed next time.
+                (progn
+                  (save-buffer)
+                  (setq-local lsp-bridge-buffer-file-deleted nil)
+                  (message "[LSP-Bridge] %s is back, will send the %s LSP request after the file is changed next time." acm-backend-lsp-filepath method))
+              (when (and acm-backend-lsp-filepath
+                         (not (string-equal acm-backend-lsp-filepath "")))
+                (lsp-bridge-deferred-chain
+                  (lsp-bridge-epc-call-deferred lsp-bridge-epc-process (read method) (append (list acm-backend-lsp-filepath) args)))))
+          ;; We need send `closeFile' request to lsp server if we found buffer's file is not exist,
+          ;; it is usually caused by switching branch or other tools to delete file.
+          ;;
+          ;; We won't send any lsp request until buffer's file create again.
+          (unless lsp-bridge-buffer-file-deleted
+            (lsp-bridge-close-buffer-file)
+            (setq-local lsp-bridge-buffer-file-deleted t)
+            (message "[LSP-Bridge] %s is not exist, stop send the %s LSP request until file create again." acm-backend-lsp-filepath method)))))))
 
 (defun lsp-bridge-restart-process ()
   "Stop and restart LSP-Bridge process."
@@ -2569,6 +2578,17 @@ We need exclude `markdown-code-fontification:*' buffer in `lsp-bridge-monitor-be
 (defvar-local lsp-bridge-remote-file-host nil)
 (defvar-local lsp-bridge-remote-file-port nil)
 (defvar-local lsp-bridge-remote-file-path nil)
+(defvar lsp-bridge-remote-file-pattern
+  (rx bos (? "/")
+      ;; username
+      (? (seq (any "a-z_") (* (any "a-z0-9_.-"))) "@")
+      ;; host ip
+      (repeat 3 (seq (repeat 1 3 (any "0-9")) ".")) (repeat 1 3 (any "0-9"))
+      ;; ssh port
+      (? ":" (+ digit))
+      ;; path
+      (? ":") (? "~") (* nonl) eol
+      ))
 
 (defun lsp-bridge-open-or-create-file (filepath)
   "Open FILEPATH, if it exists. If not, create it and its parent directories."
@@ -2686,7 +2706,12 @@ SSH tramp file name is like /ssh:user@host#port:path"
                                                                         lsp-bridge-remote-file-path))))
         (lsp-bridge-sync-tramp-remote)))))
 
+(defvar lsp-bridge-remote-file-window nil)
 (defun lsp-bridge-open-remote-file--response(tramp-method user host port path content position)
+  (if lsp-bridge-remote-file-window
+      (progn
+        (select-window lsp-bridge-remote-file-window)
+        (setq lsp-bridge-remote-file-window nil)))
   (let ((buf-name (format "[LBR] %s" (file-name-nondirectory path))))
     (lsp-bridge-define--jump-record-postion)
 
@@ -2726,7 +2751,10 @@ SSH tramp file name is like /ssh:user@host#port:path"
 
     ;; Always enable lsp-bridge for remote file.
     ;; Remote file can always edit and update content even some file haven't corresponding lsp server, such as *.txt
-    (lsp-bridge-mode 1)))
+    (lsp-bridge-mode 1))
+  (when lsp-bridge-ref-open-remote-file-go-back-to-ref-window
+    (lsp-bridge-switch-to-ref-window)
+    (setq lsp-bridge-ref-open-remote-file-go-back-to-ref-window nil)))
 
 (defun lsp-bridge-remote-kill-buffer ()
   (when lsp-bridge-remote-file-flag
