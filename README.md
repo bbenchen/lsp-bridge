@@ -207,6 +207,7 @@ lsp-bridge provides support for more than two language servers for many language
 - `lsp-bridge-csharp-lsp-server`: C# language server, you can choose `omnisharp-mono` or`omnisharp-dotnet`, note that you need to give **execute permissions** to the OmniSharp file
 - `lsp-bridge-python-multi-lsp-server`: Python multi-language servers, you can choose `pyright_ruff`, `jedi_ruff`, `python-ms_ruff`, `pylsp_ruff`
 - `lsp-bridge-nix-lsp-server`: Nix language server, you can choose `rnix-lsp` or `nil`
+- `lsp-bridge-markdown-lsp-server`: Markdown language server, you can choose `vale-ls` or `nil`
 
 ## Options
 
@@ -408,7 +409,7 @@ If your language supports mixed multi-language servers, it is recommended to che
 | [verible](https://github.com/chipsalliance/verible)                                                | Verilog                                 |                                                                                                                                                                                                                                                                     |
 | [move-analyzer](https://github.com/move-language/move)                                             | Move                                    | The `move-analyzer` is included in the move language repository                                                                                                                                                                                                     |
 | [nls](https://crates.io/crates/nickel-lang-lsp/)                                                   | Nickel                                  | cargo add nickel-lang-lsp                                                                                                                                                                                                                                           |
-| [vale-ls](https://github.com/errata-ai/vale-ls)                                                    | Markdown                                |                                                                                                                                                                                                                                                                     |
+| [vale-ls](https://github.com/errata-ai/vale-ls)                                                    | Markdown                                | Install vale first, then use cargo build and install vale-ls from github, and make sure vale-ls in PATH                                                                                                                                                                                                                                                                    |
 | [beancount-language-server](https://github.com/polarmutex/beancount-language-server)               | Beancount                               | cargo install beancount-language-server                                                                                                                                                                                                                             |
 
 
