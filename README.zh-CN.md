@@ -81,7 +81,7 @@ lsp-bridge 的优势：
 请注意:
 
 1. 使用 lsp-bridge 时， 请先关闭其他补全插件， 比如 lsp-mode, eglot, company, corfu 等等， lsp-bridge 提供从补全后端、 补全前端到多后端融合的全套解决方案。
-2. lsp-bridge 除了提供 LSP 补全以外， 也提供了很多非 LSP 的补全后端， 包括文件单词、 路径、 Yas/Tempel、 TabNine、 Codeium、 Copilot、 Citre、 Tailwind、 Ctags 等补全后端， 如果你期望在某个模式提供这些补全， 请把对应的模式添加到 `lsp-bridge-default-mode-hooks`
+2. lsp-bridge 除了提供 LSP 补全以外， 也提供了很多非 LSP 的补全后端， 包括文件单词、 路径、 Yas/Tempel、 TabNine、 Codeium、 Copilot、 Citre、 Tailwind、 Ctags, Org roam 等补全后端， 如果你期望在某个模式提供这些补全， 请把对应的模式添加到 `lsp-bridge-default-mode-hooks`
 3. 请不要对 lsp-bridge 执行 ```byte compile``` 或者 ```native comp``， 会导致升级后， compile 后的版本 API 和最新版不一样， lsp-bridge 多线程设计， 不需要 compile 来加速
 4. 终端模式下， lsp-bridge 没法弹出补全菜单， 请使用 GUI 界面 (因为 Emacs 终端下缺乏像素级坐标 API 和跨窗口显示 API， 无法做到良好的补全体验)
 
@@ -409,8 +409,9 @@ lsp-bridge 每种语言的服务器配置存储在 [lsp-bridge/langserver](https
 | [verible](https://github.com/chipalliance/verible)                                                 | Verilog                                 |                                                                                                                                                                                                                               |
 | [move-analyzer](https://github.com/move-language/move)                                             | Move                                    | `move-analyzer` 包含在 move 语言仓库里                                                                                                                                                                                        |
 | [nls](https://crates.io/crates/nickel-lang-lsp/)                                                   | Nickel                                  | cargo add nickel-lang-lsp                                                                                                                                                                                                     |
-| [vale-ls](https://github.com/errata-ai/vale-ls)                                                    | Markdown                                | 先安装 vale, 并在 vale-ls git 仓库中用 cargo 来构建 vale-ls, 并确保 vale-ls 添加到 PATH 中                                                                                                                                                                                                                               |
+| [vale-ls](https://github.com/errata-ai/vale-ls)                                                    | Markdown                                | 先安装 vale, 并在 vale-ls git 仓库中用 cargo 来构建 vale-ls, 并确保 vale-ls 添加到 PATH 中                                                                                                                                    |
 | [beancount-language-server](https://github.com/polarmutex/beancount-language-server)               | Beancount                               | cargo install beancount-language-server                                                                                                                                                                                       |
+| [racket-langserver](https://github.com/jeapostrophe/racket-langserver)                             | Racket                                  |                                                                                                                                                                                   |
 ## 加入开发
 
 下图是 lsp-bridge 的架构设计:

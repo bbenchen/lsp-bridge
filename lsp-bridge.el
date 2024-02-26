@@ -525,7 +525,14 @@ Possible choices are pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, 
     (tuareg-mode .                                                               "ocamllsp")
     (erlang-mode .                                                               "erlang-ls")
     ((latex-mode Tex-latex-mode texmode context-mode texinfo-mode bibtex-mode) . lsp-bridge-tex-lsp-server)
-    ((clojure-mode clojurec-mode clojurescript-mode clojurex-mode clojure-ts-mode clojurec-ts-mode clojurescript-ts-mode clojure-dart-ts-mode) . "clojure-lsp")
+    ((clojure-mode
+      clojurec-mode
+      clojurescript-mode
+      clojurex-mode
+      clojure-ts-mode
+      clojurec-ts-mode
+      clojurescript-ts-mode
+      clojure-dart-ts-mode)  .                                                   "clojure-lsp")
     ((sh-mode bash-mode bash-ts-mode) .                                          "bash-language-server")
     ((css-mode css-ts-mode) .                                                    "vscode-css-language-server")
     (elm-mode   .                                                                "elm-language-server")
@@ -536,7 +543,7 @@ Possible choices are pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, 
     (d-mode .                                                                    "serve-d")
     ((fortran-mode f90-mode) .                                                   "fortls")
     (nix-mode .                                                                  lsp-bridge-nix-lsp-server)
-    (nickel-mode .                                                                  "nls")
+    (nickel-mode .                                                               "nls")
     (ess-r-mode .                                                                "rlanguageserver")
     (graphql-mode .                                                              "graphql-lsp")
     (swift-mode .                                                                "swift-sourcekit")
@@ -547,6 +554,7 @@ Possible choices are pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, 
     (svelte-mode .                                                               "svelteserver")
     (fsharp-mode .                                                               "fsautocomplete")
     (beancount-mode .                                                            "beancount-language-server")
+    (racket-mode    .                                                            "racket-langserver")
     )
   "The lang server rule for file mode."
   :type 'cons)
@@ -2352,8 +2360,7 @@ SymbolKind (defined in the LSP)."
               (acm-doc-try-show t)
             ;; Hide doc frame immediately.
             (acm-doc-hide))
-          )
-        )))
+          ))))
 
 (defun lsp-bridge-toggle-sdcv-helper ()
   "Toggle sdcv helper."
@@ -2669,12 +2676,14 @@ I haven't idea how to make lsp-bridge works with `electric-indent-mode', PR are 
   (interactive)
   (let* ((file-name (lsp-bridge-get-buffer-file-name-text))
          (tramp-vec (tramp-dissect-file-name file-name))
+         (tramp-method (tramp-file-name-method tramp-vec))
          (user (tramp-file-name-user tramp-vec))
          (host (tramp-file-name-host tramp-vec))
          (port (tramp-file-name-port tramp-vec))
          (path (tramp-file-name-localname tramp-vec)))
 
-    (when (not (member host lsp-bridge-tramp-blacklist))
+    (when (and (not (member tramp-method '("sudo" "sudoedit" "su" "doas")))
+           (not (member host lsp-bridge-tramp-blacklist)))
       (read-only-mode 1)
       (lsp-bridge-call-async "sync_tramp_remote" file-name user host port path))))
 

@@ -82,7 +82,7 @@ and run `doom sync` to install it.
 Please note:
 
 1. When using lsp-bridge, please first disable other completion plugins, such as lsp-mode, eglot, company, corfu, etc. lsp-bridge provides a complete solution from the completion backend, completion frontend to multi-backend integration
-2. In addition to providing LSP completion, lsp-bridge also provides many non-LSP completion backends, including file words, paths, Yas/Tempel, TabNine, Codeium, Copilot, Citre, Tailwind, Ctags and other completion backends. If you expect to provide these completions in a certain mode, please add the corresponding mode to `lsp-bridge-default-mode-hooks`
+2. In addition to providing LSP completion, lsp-bridge also provides many non-LSP completion backends, including file words, paths, Yas/Tempel, TabNine, Codeium, Copilot, Citre, Tailwind, Ctags, Org roam and other completion backends. If you expect to provide these completions in a certain mode, please add the corresponding mode to `lsp-bridge-default-mode-hooks`
 3. Please do not perform ```byte compilation``` or ```native compilation``` for lsp-bridge as it will result in a difference in API and the latest version after upgrading compiling afterwards, Lsp-bridge is designed with multi-threading that does not require compilation to speed it up
 4. In terminal mode, lsp-bridge cannot popup the completion menu, please use a GUI interface (because Emacs lacks pixel-level coordinate APIs and cross-window display APIs in terminals, resulting in an unsatisfactory completion experience)
 
@@ -411,6 +411,7 @@ If your language supports mixed multi-language servers, it is recommended to che
 | [nls](https://crates.io/crates/nickel-lang-lsp/)                                                   | Nickel                                  | cargo add nickel-lang-lsp                                                                                                                                                                                                                                           |
 | [vale-ls](https://github.com/errata-ai/vale-ls)                                                    | Markdown                                | Install vale first, then use cargo build and install vale-ls from github, and make sure vale-ls in PATH                                                                                                                                                                                                                                                                    |
 | [beancount-language-server](https://github.com/polarmutex/beancount-language-server)               | Beancount                               | cargo install beancount-language-server                                                                                                                                                                                                                             |
+| [racket-langserver](https://github.com/jeapostrophe/racket-langserver)                             | Racket                                  |                                                                                                                                                                                   |
 
 
 ## Join development
