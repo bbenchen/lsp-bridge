@@ -91,9 +91,9 @@ lsp-bridge 开箱即用， 安装好语言对应的 [LSP 服务器](https://gith
 
 需要注意的是 lsp-bridge 有三种扫描模式：
 
-1. 检测到 `.git` 目录时(通过命令 `git rev-parse --is-inside-work-tree` 来判断)， lsp-bridge 会扫描整个目录文件来提供补全
-2. 没有检测到 `.git` 目录时， lsp-bridge 只会对打开的文件提供单文件补全
-3. 通过 setq 自定义的 `lsp-bridge-get-project-path-by-filepath` 函数， 输入参数是打开文件的路径字符串， 输出参数是项目目录路径， lsp-bridge 会根据输出目录路径来提供补全, 第三种情况一般用于一个 git 项目中包含多个前后端模块的场景
+1. 通过向上搜索 `.git` 或 `.dir-locals.el` 文件来确定项目的 root 目录， 从而对整个项目目录提供补全
+2. 没有找到 `.git` 或 `.dir-locals.el` 文件时， lsp-bridge 只会对打开的文件提供单文件补全
+3. 也可以通过自定义 `lsp-bridge-get-project-path-by-filepath` 函数来告诉 lsp-bridge 项目的根目录， 这个函数输入参数是打开文件的路径字符串， 输出参数是项目目录路径
 
 ## 远程使用
 
@@ -173,6 +173,7 @@ lsp-bridge 开箱即用， 安装好语言对应的 [LSP 服务器](https://gith
 - `lsp-bridge-diagnostic-list`: 列出所有诊断信息
 - `lsp-bridge-diagnostic-copy`: 拷贝当前诊断信息到剪切板
 - `lsp-bridge-code-action`: 弹出代码修复菜单, 也可以指需要修复的代码动作类型: "quickfix", "refactor", "refactor.extract", "refactor.inline", "refactor.rewrite", "source", "source.organizeImports", "source.fixAll"
+- `lsp-bridge-workspace-list-symbol-at-point`: 查找光标下符号的定义
 - `lsp-bridge-workspace-list-symbols`: 列出工作区所有符号， 并跳转到符号定义
 - `lsp-bridge-signature-help-fetch`: 在 minibuffer 显示参数信息
 - `lsp-bridge-popup-complete-menu`: 手动弹出补全菜单， 只有当打开 `lsp-bridge-complete-manually` 选项才需要使用这个命令

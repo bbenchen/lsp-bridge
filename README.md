@@ -92,9 +92,9 @@ Lsp-bridge works out of the box. After installing the corresponding [LSP server]
 
 It should be noted that lsp-bridge has three scanning modes:
 
-1. When the `.git` directory is detected (determined by the command `git rev-parse --is-inside-work-tree`), lsp-bridge will scan the entire directory to provide completion.
-2. When the `.git` directory is not detected, lsp-bridge only provides single-file completion for the opened file.
-3. Through the `lsp-bridge-get-project-path-by-filepath` function customized by setq, the input parameter is the path string of the opened file, the output parameter is the project directory path, lsp-bridge will provide completion based on the output directory path.
+1. Determine the project's root directory by searching upward for a `.git` or `.dir-locals.el` file, thereby providing completion for the entire project directory.
+2. If a `.git` or `.dir-locals.el` file is not found, lsp-bridge will only provide single file completion for the opened file.
+3. You can also tell lsp-bridge the root directory of the project by customizing the `lsp-bridge-get-project-path-by-filepath` function. This function takes the path string of the opened file as the input parameter and outputs the project directory path.
 
 ## Remote Usage
 
@@ -175,6 +175,7 @@ Note:
 - `lsp-bridge-diagnostic-list`: List all diagnostic information
 - `lsp-bridge-diagnostic-copy`: Copy the current diagnostic information to the clipboard
 - `lsp-bridge-code-action`: Popup code action menu, you can pass special `actin-kind` to fix, `action-kind` can use one of "quickfix", "refactor", "refactor.extract", "refactor.inline", "refactor.rewrite", "source", "source.organizeImports", "source.fixAll"
+- `lsp-bridge-workspace-list-symbol-at-point`: Finds the definition of a symbol at the cursor point
 - `lsp-bridge-workspace-list-symbols`: List all symbols in workspace and jump to the symbol definition
 - `lsp-bridge-signature-help-fetch`: show signature help in minibuffer manually (move cursor to parameters area will show signature help automatically)
 - `lsp-bridge-popup-complete-menu`: Manually popup the completion menu, you only need this command when turn on option `lsp-bridge-complete-manually`
