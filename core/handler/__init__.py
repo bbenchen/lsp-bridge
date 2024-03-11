@@ -66,6 +66,6 @@ from core.handler.inlay_hint import InlayHint  # noqa: F401
 from core.handler.semantic_tokens import SemanticTokens  # noqa: F401
 from core.handler.jdtls.jdtls_list_overridable_methods import JdtlsListOverridableMethods  # noqa: F401
 from core.handler.jdtls.jdtls_add_overridable_methods import JdtlsAddOverridableMethods  # noqa: F401
-from core.handler.jdtls.jdtls_project_is_test_file import JdtlsProjectIsTestFile
-from core.handler.jdtls.jdtls_project_get_classpaths import JdtlsProjectGetClasspaths
-from core.handler.jdtls.jdtls_update_project_configuration import JdtlsUpdateProjectConfiguration
+from core.handler.jdtls.jdtls_project_is_test_file import JdtlsProjectIsTestFile  # noqa: F401
+from core.handler.jdtls.jdtls_project_get_classpaths import JdtlsProjectGetClasspaths  # noqa: F401
+from core.handler.jdtls.jdtls_update_project_configuration import JdtlsUpdateProjectConfiguration  # noqa: F401
