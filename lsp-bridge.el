@@ -78,6 +78,7 @@
 (require 'subr-x)
 (require 'markdown-mode)
 (require 'diff)
+(require 'url-util)
 
 (defvar acm-library-path (expand-file-name "acm" (if load-file-name
                                                      (file-name-directory load-file-name)
@@ -2287,9 +2288,11 @@ SymbolKind (defined in the LSP)."
         (let* ((symbol-info (plist-get (car match-info) :location))
                (symbol-file (lsp-bridge-pick-file-path (format "%s" (plist-get symbol-info :uri))))
                (symbol-position (plist-get (plist-get symbol-info :range) :start)))
-          (find-file symbol-file)
-          (goto-char (acm-backend-lsp-position-to-point symbol-position))
-          )))))
+          (cond ((string-prefix-p "jdt://" symbol-file)
+                 (lsp-bridge-call-file-api "jdt_uri_resolver" (url-encode-url symbol-file) symbol-position))
+                (t
+                 (find-file symbol-file)
+                 (goto-char (acm-backend-lsp-position-to-point symbol-position)))))))))
 
 (defun lsp-bridge-workspace-transform-info(info)
   (let* ((name (plist-get info :name))
