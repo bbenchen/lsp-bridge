@@ -1836,7 +1836,7 @@ Off by default."
 (defun lsp-bridge-rename ()
   (interactive)
   (lsp-bridge-call-file-api "prepare_rename" (lsp-bridge--position))
-  (let ((new-name (read-string "Rename to: " (thing-at-point 'symbol 'no-properties))))
+  (let ((new-name (substring-no-properties (read-string "Rename to: " (thing-at-point 'symbol 'no-properties)))))
     (lsp-bridge-call-file-api "rename" (lsp-bridge--position) new-name)))
 
 (defun lsp-bridge-flash-region (start-pos end-pos)
@@ -2288,11 +2288,15 @@ SymbolKind (defined in the LSP)."
         (let* ((symbol-info (plist-get (car match-info) :location))
                (symbol-file (lsp-bridge-pick-file-path (format "%s" (plist-get symbol-info :uri))))
                (symbol-position (plist-get (plist-get symbol-info :range) :start)))
-          (cond ((string-prefix-p "jdt://" symbol-file)
-                 (lsp-bridge-call-file-api "jdt_uri_resolver" (url-encode-url symbol-file) symbol-position))
-                (t
-                 (find-file symbol-file)
-                 (goto-char (acm-backend-lsp-position-to-point symbol-position)))))))))
+          (lsp-bridge-jump-to-file symbol-file symbol-position)
+          )))))
+
+(defun lsp-bridge-jump-to-file (file position)
+  (cond ((string-prefix-p "jdt://" file)
+         (lsp-bridge-call-file-api "jdt_uri_resolver" (url-encode-url file) position))
+        (t
+         (find-file file)
+         (goto-char (acm-backend-lsp-position-to-point position)))))
 
 (defun lsp-bridge-workspace-transform-info(info)
   (let* ((name (plist-get info :name))
