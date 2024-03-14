@@ -2276,7 +2276,7 @@ SymbolKind (defined in the LSP)."
 
 (defun lsp-bridge-workspace-list-symbols (query)
   (interactive "sWorkspace symbol query: ")
-  (lsp-bridge-call-file-api "workspace_symbol" query))
+  (lsp-bridge-call-file-api "workspace_symbol" (substring-no-properties query)))
 
 (defun lsp-bridge-workspace--list-symbols (info)
   (if (zerop (length info))

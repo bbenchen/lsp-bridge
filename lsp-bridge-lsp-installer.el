@@ -241,7 +241,7 @@ Only useful on GNU/Linux.  Automatically set if NixOS is detected."
 (defun lsp-bridge-codeium-input-auth-token (auth-token)
   "Inputting auth token for Codeium."
   (interactive "sAuth token: ")
-  (lsp-bridge-call-async "codeium_get_api_key" auth-token))
+  (lsp-bridge-call-async "codeium_get_api_key" (substring-no-properties auth-token)))
 
 (defun lsp-bridge-install-update-codeium ()
   "Install or update Codeium binary in `codeium-bridge-folder'."
