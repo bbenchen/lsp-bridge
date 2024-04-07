@@ -221,7 +221,7 @@ lsp-bridge 针对许多语言都提供 2 个以上的语言服务器支持， �
 
 - `lsp-bridge-python-command`: Python 命令的路径, 如果你用 `conda`， 你也许会定制这个选项。 Windows 平台用的是 `python.exe` 而不是 `python3`, 如果 lsp-bridge 不能工作， 可以尝试改成 `python3`
 - `lsp-bridge-complete-manually`: 只有当用户手动调用 `lsp-bridge-popup-complete-menu` 命令的时候才弹出补全菜单， 默认关闭
-- `lsp-bridge-enable-with-tramp`: 打开这个选项后， lsp-bridge 会对 tramp 打开的文件提供远程补全支持， 需要提前在服务端安装并启动 lsp_bridge.py, 注意的是这个选项只是用 tramp 打开文件， 并不会用 tramp 技术来实现补全， 因为 tramp 的实现原理有严重的性能问题
+- `lsp-bridge-enable-with-tramp`: 打开这个选项后， lsp-bridge 会对 tramp 打开的文件提供远程补全支持， 需要提前在服务端安装并启动 lsp_bridge.py, 注意的是这个选项只是用 tramp 打开文件， 并不会用 tramp 技术来实现补全， 因为 tramp 的实现原理有严重的性能问题。 需要注意的是， 如果你平常用 `lsp-bridge-open-remote-file` 命令， 需要关闭 `lsp-bridge-enable-with-tramp` 这个选项， 保证 `lsp-bridge-open-remote-file` 命令打开的文件可以正常跳转定义或者引用的位置。
 - `lsp-bridge-remote-save-password`: 远程编辑时， 把密码保存到 netrc 文件， 默认关闭
 - `lsp-bridge-remote-heartbeat-interval`: 远程编辑时， 可以定期(以秒为单位)给远程服务器发送心跳包， 默认关闭， 如果你会长时间让 emacs 处于闲置状态， 你可以尝试配置该选项来保持 lsp-bridge 连接不会被关闭
 - `lsp-bridge-get-workspace-folder`: 在 Java 中需要把多个项目放到一个 Workspace 目录下， 才能正常进行定义跳转， 可以自定义这个函数， 函数输入是项目路径， 返回对应的 Workspace 目录
@@ -430,8 +430,7 @@ lsp-bridge 每种语言的服务器配置存储在 [lsp-bridge/langserver](https
 | Yaml        | [yaml-language-server](https://github.com/redhat-developer/yaml-language-server)                   | `npm install -g yaml-language-server`                                                                                                                                                                                          |
 | Zig         | [zls](https://github.com/zigtools/zls)                                                             | 运行 `zls config` 来生成 zls 的配置。 参考 [Configuration Options](https://github.com/zigtools/zls#configuration-options)                                                                                                      |
 
- ;
-                                                                                                                                                 |
+                                                                                                                                                 
 ## 加入开发
 
 下图是 lsp-bridge 的架构设计:
@@ -455,7 +454,7 @@ lsp-bridge 每种语言的服务器配置存储在 [lsp-bridge/langserver](https
 | lsp-bridge-dart.el                  | 提供对 Dart 私有协议的支持， 比如 Dart 的 Closing Labels 协议                                                        |
 | lsp-bridge-semantic-tokens.el       | 灵活显示某些语义符号， 对于静态语言， 比如 C 或 C++ 比较有用                                                         |
 | lsp-bridge-lsp-installer.el         | 安装 TabNine 和 Omnisharp                                                                                            |
-| lsp-bridge-peek.el                  | 用 peek windows 来查看定义和引用                                                                                     |
+| lsp-bridge-peek.el                  | 用 peek windows 来查看定义和引用, 类似 VSCode 中 Code Lens 的体验                                                                                      |
 | lsp-bridge.py                       | lsp-bridge 的 Python 主逻辑部分， 提供事件循环、 消息调度和状态管理                                                  |
 | acm/acm.el                          | 异步补全菜单， 专门为 lsp-bridge 后端而设计， 支持 lsp, elisp, words, TabNine 等后端                                 |
 | core/fileaction.py                  | 主要记录每个文件状态， 处理 LSP 响应消息， 调用 Emacs Elisp 函数                                                     |
