@@ -1,4 +1,5 @@
 ;;; lsp-bridge-call-hierarchy.el --- LSP bridge  -*- lexical-binding: t -*-
+(require 'cl-macs)
 (require 'acm-frame)
 
 (defvar lsp-bridge-call-hierarchy-name-width 40

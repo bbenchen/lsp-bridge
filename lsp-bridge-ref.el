@@ -467,7 +467,7 @@ user more freedom to use rg with special arguments."
 (defun lsp-bridge-ref-get-line-content (buffer line)
   (with-current-buffer buffer
     (save-excursion
-      (goto-line line)
+      (forward-line line)
       (beginning-of-line)
       (search-forward-regexp lsp-bridge-ref-regexp-position nil t)
       (setq start (point))
@@ -511,7 +511,7 @@ user more freedom to use rg with special arguments."
 
 (defun lsp-bridge-ref-mark-position-clear (line)
   (save-excursion
-    (goto-line line)
+    (forward-line line)
     (beginning-of-line)
     (forward-char)
     (dolist (overlay (overlays-at (point)))
@@ -911,7 +911,7 @@ user more freedom to use rg with special arguments."
 
 (defun lsp-bridge-ref-move-to-point (line column)
   ;; Jump to match position.
-  (goto-line line)
+  (forward-line line)
   (beginning-of-line)
 
   (lsp-bridge-ref-jump-to-column column))
@@ -1058,7 +1058,7 @@ Function `move-to-column' can't handle mixed string of Chinese and English corre
             (setq changed-line-content (lsp-bridge-ref-get-line-content lsp-bridge-ref-buffer line))
             (with-current-buffer lsp-bridge-ref-buffer
               ;; Get match file and line.
-              (goto-line line)
+              (forward-line line)
               (setq match-file (lsp-bridge-ref-get-match-file))
               (setq match-line (lsp-bridge-ref-get-match-line)))
             ;; Open file in other window.
@@ -1066,7 +1066,7 @@ Function `move-to-column' can't handle mixed string of Chinese and English corre
             ;; Remove from temp list if file's buffer is exist.
             (setq lsp-bridge-ref-temp-visit-buffers (remove (current-buffer) lsp-bridge-ref-temp-visit-buffers))
             ;; Kill target line.
-            (goto-line match-line)
+            (forward-line match-line)
             (kill-line)
             ;; Insert change line.
             (if (string-equal changed-line-content "")
