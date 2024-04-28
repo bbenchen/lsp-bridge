@@ -49,4 +49,14 @@ class CodeAction(Handler):
         else:
             actions = response
 
+        remote_connection_info = get_remote_connection_info()
+        if remote_connection_info != "" :
+            for item in actions:
+                changes = item["edit"]["changes"]
+                new_changes = {}
+                for file in changes.keys():
+                    tramp_file = local_path_to_tramp_path(file, remote_connection_info)
+                    new_changes[tramp_file] = changes[file]
+                item["edit"]["changes"] = new_changes
+
         self.file_action.push_code_actions(actions, self.lsp_server_name, self.action_kind)
