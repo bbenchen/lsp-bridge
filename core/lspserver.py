@@ -556,18 +556,25 @@ class LspServer:
 
         # Otherwise, send back section value or default settings.
         items = []
+        server_name = self.server_info["name"]
         for p in params["items"]:
-            section = p.get("section", self.server_info["name"])
-            sessionSettings = settings.get(section, {})
+            section = p.get("section", server_name)
+            session_settings = settings.get(section, {})
 
-            if self.server_info["name"] == "vscode-eslint-language-server":
-                sessionSettings = settings
-                sessionSettings["workspaceFolder"] = {
+            if server_name == "vscode-eslint-language-server":
+                session_settings = settings
+                session_settings["workspaceFolder"] = {
                     "name": self.project_name,
                     "uri": path_to_uri(self.project_path),
                 }
 
-            items.append(sessionSettings)
+            elif server_name == "graphql-lsp":
+                session_settings = settings
+                session_settings["load"] = {
+                    "rootDir": self.project_path,
+                }
+
+            items.append(session_settings)
         self.sender.send_response(request_id, items)
 
     def handle_error_message(self, message):
@@ -639,11 +646,10 @@ class LspServer:
                 get_from_path_dict(self.files, filepath).record_dart_closing_lables(message["params"]["labels"])
 
     def handle_log_message(self, message):
-        # Notice user if got error message from lsp server.
         if "method" in message and message["method"] == "window/logMessage":
             try:
                 if "error" in message["params"]["message"].lower():
-                    message_emacs("{} ({}): {}".format(self.project_name, self.server_info["name"], message["params"]["message"]))
+                    print("{} ({}): {}".format(self.project_name, self.server_info["name"], message["params"]["message"]))
             except:
                 pass
 
