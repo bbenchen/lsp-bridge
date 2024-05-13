@@ -84,7 +84,7 @@ class Completion(Handler):
 
         # Optimizing for Rust
         try:
-            if self.method_server_name == "rust-analyzer" and "(\u2026)" in label or "()" in label: # '\u2026' is the unicode char: '…'
+            if (self.method_server_name == "rust-analyzer") and ("(\u2026)" in label or "()" in label): # '\u2026' is the unicode char: '…'
                 # When finding an ellipsis in 'label'
                 # replace 'fn' with function name in 'label'
                 function_name = label.split('(')[0]
@@ -171,7 +171,7 @@ class Completion(Handler):
                     # Make the key unique.
 
                     key += "_" + "_".join(
-                        format(fnv_1a(x["newText"].encode('utf-8')), 'x')[:8]
+                        format(self.fnv_1a(x["newText"].encode('utf-8')), 'x')[:8]
                         for x in item.get("additionalTextEdits", []))
 
                 # Build candidate.
