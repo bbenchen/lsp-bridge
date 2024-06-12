@@ -332,52 +332,186 @@ class LspServer:
 
         merge_capabilites = merge(server_capabilities, {
             "workspace": {
-                "configuration": True,
-                "symbol": {
-                    "resolveSupport": {
-                        "properties": []
-                    }
+              "workspaceEdit": {
+                "documentChanges": True,
+                "resourceOperations": [
+                  "create",
+                  "rename",
+                  "delete"
+                ]
+              },
+              "applyEdit": True,
+              "symbol": {
+                "symbolKind": {
+                  "valueSet":  list(range(1, 27))
                 }
+              },
+              "executeCommand": {
+                "dynamicRegistration": True
+              },
+              "workspaceFolders": True,
+              "configuration": True,
+              "codeLens": {
+                "refreshSupport": True
+              },
+              "inlayHint": {
+                "refreshSupport": True
+              },
+              "fileOperations": {
+                "didCreate": True,
+                "willCreate": True,
+                "didRename": True,
+                "willRename": True,
+                "didDelete": True,
+                "willDelete": True
+              }
             },
             "textDocument": {
-                "completion": {
-                    "completionItem": {
-                        "snippetSupport": True,
-                        "deprecatedSupport": True,
-                        "tagSupport": {
-                            "valueSet": [
-                                1
-                            ]
-                        },
-                        "resolveSupport": {
-                            # rust-analyzer need add `additionalTextEdits` to enable auto-import.
-                            "properties": ["documentation", "detail", "additionalTextEdits"]
-                        }
-                    }
+              "declaration": {
+                "dynamicRegistration": True,
+                "linkSupport": True
+              },
+              "definition": {
+                "dynamicRegistration": True,
+                "linkSupport": True
+              },
+              "references": {
+                "dynamicRegistration": True
+              },
+              "implementation": {
+                "dynamicRegistration": True,
+                "linkSupport": True
+              },
+              "typeDefinition": {
+                "dynamicRegistration": True,
+                "linkSupport": True
+              },
+              "synchronization": {
+                "willSave": True,
+                "didSave": True,
+                "willSaveWaitUntil": True
+              },
+              "documentSymbol": {
+                "symbolKind": {
+                  "valueSet": list(range(1, 27))
                 },
-                "codeAction": {
-                    "dynamicRegistration": False,
-                    "codeActionLiteralSupport": {
-                        "codeActionKind": {
-                            "valueSet": [
-                                "quickfix",
-                                "refactor",
-                                "refactor.extract",
-                                "refactor.inline",
-                                "refactor.rewrite",
-                                "source",
-                                "source.organizeImports"
-                            ]
-                        }
-                    },
-                    "isPreferredSupport": True
+                "hierarchicalDocumentSymbolSupport": True
+              },
+              "formatting": {
+                "dynamicRegistration": True
+              },
+              "rangeFormatting": {
+                "dynamicRegistration": True
+              },
+              "onTypeFormatting": {
+                "dynamicRegistration": True
+              },
+              "rename": {
+                "dynamicRegistration": True,
+                "prepareSupport": True
+              },
+              "codeAction": {
+                "dynamicRegistration": True,
+                "isPreferredSupport": True,
+                "codeActionLiteralSupport": {
+                  "codeActionKind": {
+                    "valueSet": [
+                      "",
+                      "quickfix",
+                      "refactor",
+                      "refactor.extract",
+                      "refactor.inline",
+                      "refactor.rewrite",
+                      "source",
+                      "source.organizeImports"
+                    ]
+                  }
                 },
                 "inlayHint": {
                     "dynamicRegistration": False
-                }
+                },
+                "resolveSupport": {
+                  "properties": [
+                    "edit",
+                    "command"
+                  ]
+                },
+                "dataSupport": True
+              },
+              "completion": {
+                "completionItem": {
+                  "snippetSupport": True,
+                  "documentationFormat": [
+                    "markdown",
+                    "plaintext"
+                  ],
+                  "resolveAdditionalTextEditsSupport": True,
+                  "insertReplaceSupport": True,
+                  "deprecatedSupport": True,
+                  "resolveSupport": {
+                    "properties": [
+                      "documentation",
+                      "detail",
+                      "additionalTextEdits",
+                      "command"
+                    ]
+                  },
+                  "insertTextModeSupport": {
+                    "valueSet": [
+                      1,
+                      2
+                    ]
+                  }
+                },
+                "contextSupport": True,
+                "dynamicRegistration": True
+              },
+              "signatureHelp": {
+                "signatureInformation": {
+                  "parameterInformation": {
+                    "labelOffsetSupport": True
+                  }
+                },
+                "dynamicRegistration": True
+              },
+              "documentLink": {
+                "dynamicRegistration": True,
+                "tooltipSupport": True
+              },
+              "hover": {
+                "dynamicRegistration": True
+              },
+              "foldingRange": {
+                "dynamicRegistration": True
+              },
+              "selectionRange": {
+                "dynamicRegistration": True
+              },
+              "callHierarchy": {
+                "dynamicRegistration": True
+              },
+              "typeHierarchy": {
+                "dynamicRegistration": True
+              },
+              "publishDiagnostics": {
+                "relatedInformation": True,
+                "tagSupport": {
+                  "valueSet": [
+                    1,
+                    2
+                  ]
+                },
+                "versionSupport": True
+              },
+              "linkedEditingRange": {
+                "dynamicRegistration": True
+              }
             },
             "window": {
-                "workDoneProgress": True
+              "workDoneProgress": True,
+              "showDocument": {
+                "support": True
+              }
             }
         })
 
@@ -432,12 +566,15 @@ class LspServer:
 
         return uri
 
+    def get_server_name(self):
+        return self.server_name.split('#')[1] if '#' in self.server_name else self.server_name
+
     def get_language_id(self, fa):
         # Get extension name.
         _, extension = os.path.splitext(fa.filepath)
         extension_name = extension.split(os.path.extsep)[-1].lower()
 
-        match_language_id = get_emacs_func_result("get-language-id", self.project_path, fa.filepath, self.server_name, extension_name)
+        match_language_id = get_emacs_func_result("get-language-id", self.project_path, fa.filepath, self.get_server_name(), extension_name)
 
         # User can customize `lsp-bridge--get-language-id-func` to support some advanced LSP server
         # that need return language id with project environment, such as, TailwindCSS LSP server.
