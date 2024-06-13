@@ -88,25 +88,6 @@ and add this to your `config.el`
 
 and run `doom sync` to install it.
 
-### pyenv configuration
-
-If you use a Python distribution installed via `pyenv`, you must adjust your
-`lsp-bridge-python-command` variable to point to the actual `python3` executable
-for your selected Python version, instead of the `pyenv` shim for
-`python3`. Place one of the following `setq` expressions within your
-`lsp-bridge` configuration:
-
-``` elisp
-;; OPTION 1 (static)
-;; Replace <VERSION> with the actual Python version number (i.e., 3.11.4).
-(setq lsp-bridge-python-command "~/.pyenv/versions/<VERSION>/bin/python3")
-
-;; OPTION 2 (dynamic)
-;; This is a better option if the `pyenv' executable is discoverable on `exec-path':
-(setq lsp-bridge-python-command (string-trim
-                                 (shell-command-to-string "pyenv which python3")))
-```
-
 ### If you are unable to use normally after installing it, please read [Report bug](https://github.com/manateelazycat/lsp-bridge?tab=readme-ov-file#report-bug) first
 
 Please note:
@@ -127,6 +108,7 @@ It should be noted that lsp-bridge has three scanning modes:
 
 ## Remote Usage
 
+### Remote SSH server
 `lsp-bridge` can perform code syntax completion on files on a remote server, similar to VSCode. The configuration steps are as follows:
 
 1. Install lsp-bridge and the corresponding LSP Server on the remote server.
@@ -157,6 +139,62 @@ Note:
 3. To run lsp_bridge.py successfully you need to completely download the entire git repository of lsp-bridge on a remote server, and switch into its directory, lsp_bridge.py requires other files to function properly, so copying only the lsp_bridge.py file can't work
 4. If a tramp file encounters an lsp-bridge connection error, you can execute the `lsp-bridge-tramp-show-hostnames` function and then check if the output of the host configuration options meets expectations
 
+### Local devcontainer
+`lsp-bridge` now support completion on files on `devcontainer`, similar to VSCode. This is done by using [devcontainer-feature-emacs-lsp-bridge](https://github.com/nohzafk/devcontainer-feature-emacs-lsp-bridge).
+
+Here is a compelte configuration example
+
+#### devcontainer.json
+`.devcontainer/devcontainer.json`
+
+``` json
+{
+    "name": "Node.js & TypeScript",
+    // Your base image
+    "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+    // Features to add to the dev container. More info: https://containers.dev/features.
+    "features": {
+        "ghcr.io/nohzafk/devcontainer-feature-emacs-lsp-bridge/pyright-background-analysis_ruff:latest": {}
+    },
+    "forwardPorts": [
+        9997,
+        9998,
+        9999
+    ],
+    // More info: https://aka.ms/dev-containers-non-root.
+    "remoteUser": "root"
+}
+```
+
+#### doom-emacs configuration
+`config.el`
+
+``` elisp
+(use-package! lsp-bridge
+  :config
+  (setq lsp-bridge-python-multi-lsp-server "pyright-background-analysis_ruff")
+
+  (global-lsp-bridge-mode))
+```
+
+start the devcontainer and use `file-find` `/docker:user@container:/path/to/file` to open the file.
+
+more detail please refer to [devcontainer-feature-emacs-lsp-bridge](https://github.com/nohzafk/devcontainer-feature-emacs-lsp-bridge).
+
+If you use `apheleia` as formatter, `lsp-bridge` now support auto formatting file on devcontainer.
+
+```elsip
+(use-package! apheleia
+  :config
+  (setq +format-with-lsp nil)
+  ;; which formatter to use
+  (setf (alist-get 'python-mode apheleia-mode-alist) 'ruff)
+  (setf (alist-get 'python-ts-mode apheleia-mode-alist) 'ruff)
+
+  (setq apheleia-remote-algorithm 'local)
+  (after! lsp-bridge
+    (add-hook 'apheleia-post-format-hook #'lsp-bridge-update-tramp-docker-file-mod-time)))
+```
 
 ## Keymap
 
@@ -225,58 +263,6 @@ Note:
 - `lsp-bridge-indent-left`: Indents the pasted text to the left according to the indent values defined in `lsp-bridge-formatting-indent-alist`
 - `lsp-bridge-indent-right`: Indents the pasted text to the right according to the indent values defined in `lsp-bridge-formatting-indent-alist`
 - `lsp-bridge-semantic-tokens-mode`: Enables or disables semantic token highlighting, please ref to [Semantic Tokens Wiki](https://github.com/manateelazycat/lsp-bridge/wiki/Semantic-Tokens)
-
-## Customize language server configuration
-
-The configuration for the LSP server of each language in lsp-bridge is stored in [lsp-bridge/langserver](https://github.com/manateelazycat/lsp-bridge/tree/master/langserver).
-
-In most cases, you can customize the server configuration according to the following priority order:
-
-1. `lsp-bridge-get-single-lang-server-by-project`: A user-defined function that takes project-path and file-path as input parameters and returns the corresponding LSP server string. You can query the names of all LSP servers in the lsp-bridge-single-lang-server-mode-list list. By default, this function returns nil.
-2. `lsp-bridge-single-lang-server-extension-list`: Returns the server based on the file extension, for example, when opening a \*.wxml file, we will use the wxml LSP server for completion.
-3. `lsp-bridge-single-lang-server-mode-list`: Returns the corresponding server based on Emacs’s major-mode.
-
-If you are writing JavaScript code, you may need to customize multiple server configurations:
-
-1. `lsp-bridge-get-multi-lang-server-by-project`: A user-defined function that takes project-path and file-path as input parameters and returns the multiple server configuration names. You can search for them in the subdirectory [lsp-bridge/multiserver](https://github.com/manateelazycat/lsp-bridge/tree/master/multiserver).
-2. `lsp-bridge-multi-lang-server-extension-list`: Returns multiple server configuration names based on the file extension. For example, when opening a \*.vue file, we will use volar_emmet to simultaneously utilize volar and emmet-ls for completion.
-3. `lsp-bridge-multi-lang-server-mode-list`: Returns the corresponding multiple server configuration names based on Emacs’s major-mode.
-
-For example, we can enable the Deno LSP server for Deno scripts with the following configuration:
-
-```elisp
-;; lsp-bridge first try `lsp-bridge--get-multi-lang-server-func', then try `lsp-bridge--get-single-lang-server-func'
-;; So we need remove `ts' and `tsx' setting from default value of lsp-bridge-multi-lang-server-extension-list.
-(setq lsp-bridge-multi-lang-server-extension-list
-      (cl-remove-if (lambda (item)
-                      (equal (car item) '("ts" "tsx")))
-                    lsp-bridge-multi-lang-server-extension-list))
-
-;; Last we customize `lsp-bridge-get-single-lang-server-by-project' to return `deno' lsp server name.
-;; I recommand you write some code to compare project-path or file-path, return `deno' only if match target path.
-(setq lsp-bridge-get-single-lang-server-by-project
-      (lambda (project-path file-path)
-	(when (or (string-suffix-p ".ts" file-path)
-		  (string-suffix-p ".tsx" file-path))
-	  "deno")))
-```
-
-Note: Some advanced LSP server, such as tailwindcss and emmet-ls, require a languageId and file extension that cannot be one-to-one corresponded. Instead, they dynamically return the languageId based on different frontend projects environment. In this case, you need to customize the `lsp-bridge-get-language-id` function to meet this requirement.
-
-## Customize language server configuration file
-
-Copy the configuration files in [lsp-bridge/langserver](https://github.com/manateelazycat/lsp-bridge/tree/master/langserver) or [lsp-bridge/multiserver](https://github.com/manateelazycat/lsp-bridge/tree/master/multiserver) to lsp-bridge-user-langserver-dir or lsp-bridge-user-multiserver-dir for customization. Lsp-bridge will prioritize reading the configuration files in lsp-bridge-user-langserver-dir or lsp-bridge-user-multiserver-dir.
-
-We can set the value of lsp-bridge-user-langserver-dir or lsp-bridge-user-multiserver-dir before starting lsp-bridge-mode to achieve different project-specific configuration files.
-
-```elisp
-(defun enable-lsp-bridge()
-  (when-let* ((project (project-current))
-              (project-root (nth 2 project)))
-    (setq-local lsp-bridge-user-langserver-dir project-root
-                lsp-bridge-user-multiserver-dir project-root))
-  (lsp-bridge-mode))
-```
 
 ## LSP server options
 lsp-bridge provides support for more than two language servers for many languages. You can customize the following options to choose the language server you prefer:
@@ -367,15 +353,6 @@ lsp-bridge provides support for more than two language servers for many language
 - `acm-backend-lsp-show-progress`: show working progress, disable by default
 - `acm-enable-preview`: enable Tab-and-Go completion, commands like acm-select-* will select and preview other candidate and further input will then commit this candidate, disable by default
 
-## Add support for new language?
-
-1. Create a configuration file in the lsp-bridge/langserver directory. For example, `pyright.json` is the configuration file for the pyright server (use `pyright_windows.json` for Windows and `pyright_darwin.json` for macOS).
-2. Add `(mode . server_name)` to the `lsp-bridge-single-lang-server-mode-list` option in the lsp-bridge.el file, for example, `(python-mode . "pyright")`.
-3. Add a new mode-hook to the `lsp-bridge-default-mode-hooks` option in the lsp-bridge.el file.
-4. Add a new indentation variable to the `lsp-bridge-formatting-indent-alist` option in the lsp-bridge.el file.
-
-We welcome patches to help us support more LSP servers. Thank you for your help!
-
 ## Supported language servers
 
 You need to install the LSP server corresponding to each programming language, then lsp-bridge can provide code completion service.
@@ -465,6 +442,87 @@ If your language supports mixed multi-language servers, it is recommended to che
 | Yaml        | [yaml-language-server](https://github.com/redhat-developer/yaml-language-server)                   | `npm install -g yaml-language-server`                                                                                                                                                                                                                               |
 | Zig         | [zls](https://github.com/zigtools/zls)                                                             | Execute `zls config` to generate configuration for zls. see [Configuration Options](https://github.com/zigtools/zls#configuration-options)                                                                                                                          |
 | Solidity    | [solidity-language-server](https://github.com/NomicFoundation/hardhat-vscode)                      | `npm install -g @nomicfoundation/solidity-language-server`. see [Solidity Language Server](https://github.com/NomicFoundation/hardhat-vscode/blob/development/server/README.md)                                                                                     |
+
+## FAQ
+### pyenv configuration
+
+If you use a Python distribution installed via `pyenv`, you must adjust your
+`lsp-bridge-python-command` variable to point to the actual `python3` executable
+for your selected Python version, instead of the `pyenv` shim for
+`python3`. Place one of the following `setq` expressions within your
+`lsp-bridge` configuration:
+
+``` elisp
+;; OPTION 1 (static)
+;; Replace <VERSION> with the actual Python version number (i.e., 3.11.4).
+(setq lsp-bridge-python-command "~/.pyenv/versions/<VERSION>/bin/python3")
+
+;; OPTION 2 (dynamic)
+;; This is a better option if the `pyenv' executable is discoverable on `exec-path':
+(setq lsp-bridge-python-command (string-trim
+                                 (shell-command-to-string "pyenv which python3")))
+```
+
+### Customize language server configuration
+
+The configuration for the LSP server of each language in lsp-bridge is stored in [lsp-bridge/langserver](https://github.com/manateelazycat/lsp-bridge/tree/master/langserver).
+
+In most cases, you can customize the server configuration according to the following priority order:
+
+1. `lsp-bridge-get-single-lang-server-by-project`: A user-defined function that takes project-path and file-path as input parameters and returns the corresponding LSP server string. You can query the names of all LSP servers in the lsp-bridge-single-lang-server-mode-list list. By default, this function returns nil.
+2. `lsp-bridge-single-lang-server-extension-list`: Returns the server based on the file extension, for example, when opening a \*.wxml file, we will use the wxml LSP server for completion.
+3. `lsp-bridge-single-lang-server-mode-list`: Returns the corresponding server based on Emacs’s major-mode.
+
+If you are writing JavaScript code, you may need to customize multiple server configurations:
+
+1. `lsp-bridge-get-multi-lang-server-by-project`: A user-defined function that takes project-path and file-path as input parameters and returns the multiple server configuration names. You can search for them in the subdirectory [lsp-bridge/multiserver](https://github.com/manateelazycat/lsp-bridge/tree/master/multiserver).
+2. `lsp-bridge-multi-lang-server-extension-list`: Returns multiple server configuration names based on the file extension. For example, when opening a \*.vue file, we will use volar_emmet to simultaneously utilize volar and emmet-ls for completion.
+3. `lsp-bridge-multi-lang-server-mode-list`: Returns the corresponding multiple server configuration names based on Emacs’s major-mode.
+
+For example, we can enable the Deno LSP server for Deno scripts with the following configuration:
+
+```elisp
+;; lsp-bridge first try `lsp-bridge--get-multi-lang-server-func', then try `lsp-bridge--get-single-lang-server-func'
+;; So we need remove `ts' and `tsx' setting from default value of lsp-bridge-multi-lang-server-extension-list.
+(setq lsp-bridge-multi-lang-server-extension-list
+      (cl-remove-if (lambda (item)
+                      (equal (car item) '("ts" "tsx")))
+                    lsp-bridge-multi-lang-server-extension-list))
+
+;; Last we customize `lsp-bridge-get-single-lang-server-by-project' to return `deno' lsp server name.
+;; I recommand you write some code to compare project-path or file-path, return `deno' only if match target path.
+(setq lsp-bridge-get-single-lang-server-by-project
+      (lambda (project-path file-path)
+	(when (or (string-suffix-p ".ts" file-path)
+		  (string-suffix-p ".tsx" file-path))
+	  "deno")))
+```
+
+Note: Some advanced LSP server, such as tailwindcss and emmet-ls, require a languageId and file extension that cannot be one-to-one corresponded. Instead, they dynamically return the languageId based on different frontend projects environment. In this case, you need to customize the `lsp-bridge-get-language-id` function to meet this requirement.
+
+### Customize language server configuration file
+
+Copy the configuration files in [lsp-bridge/langserver](https://github.com/manateelazycat/lsp-bridge/tree/master/langserver) or [lsp-bridge/multiserver](https://github.com/manateelazycat/lsp-bridge/tree/master/multiserver) to lsp-bridge-user-langserver-dir or lsp-bridge-user-multiserver-dir for customization. Lsp-bridge will prioritize reading the configuration files in lsp-bridge-user-langserver-dir or lsp-bridge-user-multiserver-dir.
+
+We can set the value of lsp-bridge-user-langserver-dir or lsp-bridge-user-multiserver-dir before starting lsp-bridge-mode to achieve different project-specific configuration files.
+
+```elisp
+(defun enable-lsp-bridge()
+  (when-let* ((project (project-current))
+              (project-root (nth 2 project)))
+    (setq-local lsp-bridge-user-langserver-dir project-root
+                lsp-bridge-user-multiserver-dir project-root))
+  (lsp-bridge-mode))
+```
+
+### Add support for new language?
+
+1. Create a configuration file in the lsp-bridge/langserver directory. For example, `pyright.json` is the configuration file for the pyright server (use `pyright_windows.json` for Windows and `pyright_darwin.json` for macOS).
+2. Add `(mode . server_name)` to the `lsp-bridge-single-lang-server-mode-list` option in the lsp-bridge.el file, for example, `(python-mode . "pyright")`.
+3. Add a new mode-hook to the `lsp-bridge-default-mode-hooks` option in the lsp-bridge.el file.
+4. Add a new indentation variable to the `lsp-bridge-formatting-indent-alist` option in the lsp-bridge.el file.
+
+We welcome patches to help us support more LSP servers. Thank you for your help!
 
 ## Join development
 
