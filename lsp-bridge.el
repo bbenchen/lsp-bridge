@@ -742,18 +742,18 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
     (rust-ts-mode               . rust-ts-mode-indent-offset) ; Rust
     (rustic-mode                . rustic-indent-offset)       ; Rust
     (scala-mode                 . scala-indent:step)          ; Scala
-    (powershell-mode            . powershell-indent)    ; PowerShell
-    (ess-mode                   . ess-indent-offset)    ; ESS (R)
-    (yaml-mode                  . yaml-indent-offset)   ; YAML
-    (hack-mode                  . hack-indent-offset)   ; Hack
-    (kotlin-mode                . c-basic-offset)       ; Kotlin
-    (verilog-mode               . verilog-indent-level) ; Verilog
-    (vhdl-mode                  . vhdl-basic-offset)    ; VHDL
-    (go-mode                    . c-basic-offset)       ;Golang
-    (go-ts-mode                 . c-basic-offset)       ;Golang
-    (svelte-mode                . js-indent-level)      ;Svelte
-    (fsharp-mode                . fsharp-indent-offset) ; F#
-    (gleam-ts-mode              . gleam-ts-indent-offset)     ; Gleam
+    (powershell-mode            . powershell-indent)      ; PowerShell
+    (ess-mode                   . ess-indent-offset)      ; ESS (R)
+    (yaml-mode                  . yaml-indent-offset)     ; YAML
+    (hack-mode                  . hack-indent-offset)     ; Hack
+    (kotlin-mode                . c-basic-offset)         ; Kotlin
+    (verilog-mode               . verilog-indent-level)   ; Verilog
+    (vhdl-mode                  . vhdl-basic-offset)      ; VHDL
+    (go-mode                    . c-basic-offset)         ;Golang
+    (go-ts-mode                 . c-basic-offset)         ;Golang
+    (svelte-mode                . js-indent-level)        ;Svelte
+    (fsharp-mode                . fsharp-indent-offset)   ; F#
+    (gleam-ts-mode              . gleam-ts-indent-offset) ; Gleam
     (default                    . standard-indent)) ; default fallback
   "A mapping from `major-mode' to its indent variable.")
 
@@ -2568,7 +2568,9 @@ We need exclude `markdown-code-fontification:*' buffer in `lsp-bridge-monitor-be
 (defun global-lsp-bridge-mode ()
   (interactive)
 
-  (dolist (hook lsp-bridge-default-mode-hooks)
+  (dolist (hook (append
+                 lsp-bridge-default-mode-hooks
+                 acm-backend-capf-mode-hooks))
     (add-hook hook (lambda ()
                      (when (cl-every (lambda (pred)
                                        (lsp-bridge-check-predicate pred "global-lsp-bridge-mode"))

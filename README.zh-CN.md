@@ -45,7 +45,7 @@ lsp-bridge 的优势：
 (global-lsp-bridge-mode)
 ```
 
-终端模式请安装 [acm-terminal](https://github.com/twlz0ne/acm-terminal), 需要注意的是， acm-terminal 有可能会因为我修改了 acm.el 代码而导致兼容性破坏， 欢迎反馈 issue 给 acm-terminal 的作者， 他是一个非常好的开发者， 会迅速解决兼容性问题
+备注： 在终端下补全请安装 [acm-terminal](https://github.com/twlz0ne/acm-terminal)
 
 * 如果你使用 straight 来安装， 应该用下面的配置来安装：
 
@@ -90,7 +90,7 @@ lsp-bridge 的优势：
 请注意:
 
 1. 使用 lsp-bridge 时， 请先关闭其他补全插件， 比如 lsp-mode, eglot, company, corfu 等等， lsp-bridge 提供从补全后端、 补全前端到多后端融合的全套解决方案。
-2. lsp-bridge 除了提供 LSP 补全以外， 也提供了很多非 LSP 的补全后端， 包括文件单词、 路径、 Yas/Tempel、 TabNine、 Codeium、 Copilot、 Citre、 Ctags, Org roam 等补全后端， 如果你期望在某个模式提供这些补全， 请把对应的模式添加到 `lsp-bridge-default-mode-hooks`
+2. lsp-bridge 除了提供 LSP 补全以外， 也提供了很多非 LSP 的补全后端， 包括 capf、 文件单词、 路径、 Yas/Tempel、 TabNine、 Codeium、 Copilot、 Citre、 Ctags, Org roam 等补全后端， 如果你期望在某个模式提供这些补全， 请把对应的模式添加到 `lsp-bridge-default-mode-hooks`
 3. 请不要对 lsp-bridge 执行 ```byte compile``` 或者 ```native comp```， 会导致升级后， compile 后的版本 API 和最新版不一样， lsp-bridge 多线程设计， 不需要 compile 来加速
 
 ## 本地使用
@@ -163,17 +163,6 @@ lsp-bridge 开箱即用， 安装好语言对应的 [LSP 服务器](https://gith
     // More info: https://aka.ms/dev-containers-non-root.
     "remoteUser": "root"
 }
-```
-
-#### Doom Emacs 配置
-`config.el`
-
-```elisp
-(use-package! lsp-bridge
-  :config
-  (setq lsp-bridge-python-multi-lsp-server "pyright-background-analysis_ruff")
-
-  (global-lsp-bridge-mode))
 ```
 
 启动开发容器， 并使用 `file-find` `/docker:user@container:/path/to/file` 打开文件。
@@ -319,6 +308,7 @@ lsp-bridge 针对许多语言都提供 2 个以上的语言服务器支持， �
 - `lsp-bridge-peek-ace-cancel-keys`: 退出 `lsp-bridge-peek-through` 的按键
 - `acm-frame-background-dark-color`: 暗色主题下的菜单背景颜色
 - `acm-frame-background-light-color`: 亮色主题下的菜单背景颜色
+- `acm-enable-capf`: 针对非 LSP 后端提供 capf 补全支持， 默认是关闭的
 - `acm-enable-doc`: 补全菜单是否显示帮助文档
 - `acm-enable-icon`: 补全菜单是否显示图标 (有很多 macOS 用户反馈 emacs-plus28 无法正常显示图标， 显示的是彩色方块， 有两种方法可以解决， 安装 Emacs Mac Port 或者自己编译 Emacs 的时候给 brew 命令增加选项 `--with-rsvg` )
 ， 重新编译了之后好像也没有用， 后来重新装了 emacs mac port
@@ -445,6 +435,11 @@ lsp-bridge 针对许多语言都提供 2 个以上的语言服务器支持， �
 | Solidity    | [solidity-language-server](https://github.com/NomicFoundation/hardhat-vscode)                      | `npm install -g @nomicfoundation/solidity-language-server`， 参考 [Solidity Language Server](https://github.com/NomicFoundation/hardhat-vscode/blob/development/server/README.md)                                             |                                               | `npm install -g emmet-ls`                                                                                                                                                                                                      |
 
 ## FAQ
+### 支持 capf
+目前 capf 的设计不适合 LSP 协议， capf 补全后端只适合非 LSP 的场景， 设置 `(setq acm-enable-capf t)` 即可补全。
+
+如果没有 capf 补全， 请确保当前模式存在于 `acm-backend-capf-mode-list` 中， 如果不在 `acm-backend-capf-mode-list` 中， 欢迎 PR。
+
 ### pyenv 配置
 
 如果你使用通过 `pyenv` 安装的 Python 发行版， 你必须调整你的 `lsp-bridge-python-command` 变量， 使其指向你所选 Python 版本的实际 `python3` 可执行文件， 而不是 `pyenv` 为 `python3` 提供的 shim。 选择下面任意一种方案放到你的 `lsp-bridge` 配置中：
@@ -571,7 +566,6 @@ lsp-bridge 每种语言的服务器配置存储在 [lsp-bridge/langserver](https
 - [LSP 协议规范](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/)
 - [lsp-bridge 架构设计](https://manateelazycat.github.io/2022/05/12/lsp-bridge/)
 - [lsp-bridge 远程补全架构设计](https://manateelazycat.github.io/2023/03/31/lsp-bridge-remote-file/)
-- [为什么 lsp-bridge 不用 capf](https://manateelazycat.github.io/2022/06/26/why-lsp-bridge-not-use-capf/)
 - [深入分析 LSP 协议](https://manateelazycat.github.io/2024/06/11/lsp-trick/)
 - [lsp-bridge Wiki](https://github.com/manateelazycat/lsp-bridge/wiki)
 
