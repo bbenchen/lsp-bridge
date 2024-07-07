@@ -472,14 +472,14 @@ Then LSP-Bridge will start by gdb, please send new issue with `*lsp-bridge*' buf
   :type 'string
   :safe #'stringp)
 
-(defcustom lsp-bridge-python-lsp-server "pyright"
+(defcustom lsp-bridge-python-lsp-server "basedpyright"
   "Default LSP server for Python.
-Possible choices are pyright, pyright-background-analysis, jedi, python-ms, pylsp, and ruff."
+Possible choices are basedpyright, pyright, pyright-background-analysis, jedi, python-ms, pylsp, and ruff."
   :type 'string)
 
-(defcustom lsp-bridge-python-multi-lsp-server "pyright-background-analysis_ruff"
+(defcustom lsp-bridge-python-multi-lsp-server "basedpyright_ruff"
   "Default Multi LSP server for Python.
-Possible choices are pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, python-ms_ruff, and pylsp_ruff."
+Possible choices are basedpyright_ruff, pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, python-ms_ruff, and pylsp_ruff."
   :type 'string)
 
 (defcustom lsp-bridge-tex-lsp-server "texlab"
@@ -494,8 +494,12 @@ Possible choices are pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, 
   "Default LSP server for nix, you can choose `rnix-lsp', `nixd' or `nil'."
   :type 'string)
 
-(defcustom lsp-bridge-markdown-lsp-server nil
-  "Default LSP server for markdown, you can choose `vale-ls' or `nil'."
+(defcustom lsp-bridge-markdown-lsp-server "nil"
+  "Default LSP server for markdown, you can choose `vale-ls', `nil' or `marksman'."
+  :type 'string)
+
+(defcustom lsp-bridge-lua-lsp-server "sumneko"
+  "Default LSP server for Lua, you can choose `sumneko' or `lua-lsp'"
   :type 'string)
 
 (defcustom lsp-bridge-use-wenls-in-org-mode nil
@@ -527,7 +531,7 @@ Possible choices are pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, 
     ((go-mode go-ts-mode) .                                                      "gopls")
     (groovy-mode .                                                               "groovy-language-server")
     (haskell-mode .                                                              "hls")
-    (lua-mode .                                                                  "sumneko")
+    (lua-mode .                                                                  lsp-bridge-lua-lsp-server)
     (markdown-mode .                                                             lsp-bridge-markdown-lsp-server)
     (dart-mode .                                                                 "dart-analysis-server")
     (scala-mode .                                                                "metals")
@@ -572,6 +576,11 @@ Possible choices are pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, 
     (mojo-mode    .                                                              "mojo-lsp-server")
     (solidity-mode .                                                             "solidity")
     (gleam-ts-mode .                                                             "gleam")
+    (ada-mode .                                                                  "ada-language-server")
+    (mint-mode .                                                                 "mint-ls")
+    (purescript-mode .                                                           "purescript-language-server")
+    (perl-mode .                                                                 "perl-language-server")
+    (futhark-mode .                                                              "futhark-lsp")
     )
   "The lang server rule for file mode."
   :type 'cons)
@@ -671,6 +680,11 @@ Possible choices are pyright_ruff, pyright-background-analysis_ruff, jedi_ruff, 
     mojo-mode-hook
     solidity-mode-hook
     gleam-ts-mode-hook
+    ada-mode-hook
+    mint-mode-hook
+    purescript-mode-hook
+    perl-mode-hook
+    futhark-mode-hook
     )
   "The default mode hook to enable lsp-bridge."
   :type '(repeat variable))
@@ -698,6 +712,9 @@ you can customize `lsp-bridge-get-project-path-by-filepath' to return project pa
   "In Java, sometimes, we need return same workspace folder for multiple projects,
 you can customize `lsp-bridge-get-workspace-folder' to return workspace folder path by give project path.")
 
+(defvar lsp-bridge-indent-two-level 2)
+(defvar lsp-bridge-indent-foure-level 2)
+
 (defvar lsp-bridge-formatting-indent-alist
   '((c-mode                     . c-basic-offset) ; C
     (c-ts-mode                  . c-basic-offset) ; C
@@ -724,6 +741,9 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
     (raku-mode                  . raku-indent-offset)  ; Perl6/Raku
     (erlang-mode                . erlang-indent-level) ; Erlang
     (ada-mode                   . ada-indent)          ; Ada
+    (mint-mode                  . lsp-bridge-indent-two-level) ; Mint
+    (purescript-mode            . purescript-indent-offset) ; PureScript
+    (futhark-mode               . futhark-indent-level) ; Futhark
     (sgml-mode                  . sgml-basic-offset)   ; SGML
     (nxml-mode                  . nxml-child-indent)   ; XML
     (nickel-mode                . c-basic-offset)
@@ -2467,6 +2487,11 @@ SymbolKind (defined in the LSP)."
    (let ((inhibit-modification-hooks t))
      ;; Apply code format edits, not sort, just reverse order.
      (lsp-bridge-file-apply-edits filename edits)
+     (when (lsp-bridge-is-remote-file)
+       (lsp-bridge-call-async "update_remote_file"
+                              lsp-bridge-remote-file-host
+                              lsp-bridge-remote-file-path
+                              (buffer-substring-no-properties (point-min) (point-max))))
      ;; Make LSP server update full content.
      (lsp-bridge-call-file-api "update_file" (buffer-name))
      ;; Notify format complete.
