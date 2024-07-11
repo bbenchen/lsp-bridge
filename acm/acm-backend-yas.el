@@ -217,10 +217,12 @@ Default matching use snippet filename."
 
 ;; Use yas-selected-text to implement $TM_SELECTED_TEXT return by jdtls
 (defun yas-expand-snippet-acm-advice (orig-fun &rest args)
-  (apply orig-fun (string-replace "$TM_SELECTED_TEXT" "`yas-selected-text`" (car args)) (cdr args)))
+  (if (stringp (car args))
+      (apply orig-fun (string-replace "$TM_SELECTED_TEXT" "`yas-selected-text`" (car args)) (cdr args))
+    (apply orig-fun args)))
 
 (advice-add 'yas-expand-snippet :around
-	    #'yas-expand-snippet-acm-advice)
+            #'yas-expand-snippet-acm-advice)
 
 (provide 'acm-backend-yas)
 
