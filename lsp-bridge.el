@@ -558,15 +558,15 @@ Possible choices are basedpyright_ruff, pyright_ruff, pyright-background-analysi
     ((php-mode php-ts-mode) .                                                    lsp-bridge-php-lsp-server)
     ((yaml-mode yaml-ts-mode) .                                                  "yaml-language-server")
     (zig-mode .                                                                  "zls")
-    (dockerfile-mode .                                                           "docker-langserver")
+    ((dockerfile-mode dockerfile-ts-mode) .                                      "docker-langserver")
     (d-mode .                                                                    "serve-d")
     ((fortran-mode f90-mode) .                                                   "fortls")
-    (nix-mode .                                                                  lsp-bridge-nix-lsp-server)
+    ((nix-mode nix-ts-mode) .                                                    lsp-bridge-nix-lsp-server)
     (nickel-mode .                                                               "nls")
     (ess-r-mode .                                                                "rlanguageserver")
     ((graphql-mode graphql-ts-mode) .                                            "graphql-lsp")
     (swift-mode .                                                                "swift-sourcekit")
-    (csharp-mode .                                                               lsp-bridge-csharp-lsp-server)
+    ((csharp-mode csharp-ts-mode) .                                              lsp-bridge-csharp-lsp-server)
     (kotlin-mode .                                                               "kotlin-language-server")
     (verilog-mode .                                                              "verible")
     (vhdl-mode .                                                                 "vhdl-tool")
@@ -650,15 +650,18 @@ Possible choices are basedpyright_ruff, pyright_ruff, pyright-background-analysi
     zig-mode-hook
     groovy-mode-hook
     dockerfile-mode-hook
+    dockerfile-ts-mode-hook
     d-mode-hook
     f90-mode-hook
     fortran-mode-hook
     nix-mode-hook
+    nix-ts-mode-hook
     nickel-mode-hook
     ess-r-mode-hook
     verilog-mode-hook
     swift-mode-hook
     csharp-mode-hook
+    csharp-ts-mode-hook
     telega-chat-mode-hook
     markdown-mode-hook
     kotlin-mode-hook
@@ -735,7 +738,7 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
     (c++-mode                   . c-basic-offset) ; C++
     (markdown-mode              . c-basic-offset) ; Markdown.
     (csharp-mode                . c-basic-offset) ; C#
-    (csharp-tree-sitter-mode    . csharp-tree-sitter-indent-offset) ; C#
+    (csharp-ts-mode             . csharp-ts-mode-indent-offset) ; C#
     (d-mode                     . c-basic-offset)             ; D
     (julia-mode                 . c-basic-offset)             ; Julia
     (java-mode                  . c-basic-offset)             ; Java
@@ -767,6 +770,7 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
     (sgml-mode                  . sgml-basic-offset)   ; SGML
     (nxml-mode                  . nxml-child-indent)   ; XML
     (nickel-mode                . c-basic-offset)
+    (nix-ts-mode                . nix-ts-mode-indent-offset) ; Nix
     (pascal-mode                . pascal-indent-level)     ; Pascal
     (typescript-mode            . typescript-indent-level) ; Typescript
     (typescript-ts-mode         . typescript-ts-mode-indent-offset) ; Typescript
