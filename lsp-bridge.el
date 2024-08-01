@@ -502,8 +502,8 @@ Possible choices are basedpyright_ruff, pyright_ruff, pyright-background-analysi
   "Default LSP server for nix, you can choose `rnix-lsp', `nixd' or `nil'."
   :type 'string)
 
-(defcustom lsp-bridge-markdown-lsp-server "nil"
-  "Default LSP server for markdown, you can choose `vale-ls', `nil' or `marksman'."
+(defcustom lsp-bridge-markdown-lsp-server "vale-ls"
+  "Default LSP server for markdown, you can choose `vale-ls' or `marksman'."
   :type 'string)
 
 (defcustom lsp-bridge-lua-lsp-server "sumneko"
@@ -2070,6 +2070,10 @@ Then we need call `lsp-bridge--set-mark-ring-in-new-buffer' in new buffer after 
 
     (if (or (string-equal filehost "") lsp-bridge-enable-with-tramp)
         (progn
+          ;; filehost sent by lsp-bridge server running inside docker is 127.0.0.1
+          (when (and lsp-bridge-remote-file-host (string= filehost "127.0.0.1"))
+            (setq filehost lsp-bridge-remote-file-host))
+
           (setq filename (concat (cdr (assoc filehost lsp-bridge-tramp-alias-alist)) filename))
           (let ((match-window (lsp-bridge-find-window-match-filename filename)))
             (if (and lsp-bridge-find-def-select-in-open-windows
