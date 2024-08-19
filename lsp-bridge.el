@@ -98,6 +98,7 @@
 (require 'lsp-bridge-inlay-hint)
 (require 'lsp-bridge-dart)
 (require 'lsp-bridge-semantic-tokens)
+(require 'lsp-bridge-rust)
 
 (defgroup lsp-bridge nil
   "LSP-Bridge group."
