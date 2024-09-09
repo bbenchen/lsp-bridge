@@ -1151,9 +1151,6 @@ So we build this macro to restore postion after code format."
             (cl-return (cons (get-buffer-window buffer) (selected-window)))
             )))
 
-  ;; Hide diagnostics.
-  (lsp-bridge-diagnostic-hide-overlays)
-
   ;; Restart lsp-bridge process.
   (lsp-bridge-kill-process)
   (lsp-bridge-start-process)
@@ -1212,6 +1209,9 @@ So we build this macro to restore postion after code format."
   "Stop LSP-Bridge process and kill all LSP-Bridge buffers."
   (interactive)
 
+  ;; Hide diagnostics.
+  (lsp-bridge-diagnostic-hide-overlays)
+
   ;; Run stop process hooks.
   (run-hooks 'lsp-bridge-stop-process-hook)
 
@@ -1219,6 +1219,8 @@ So we build this macro to restore postion after code format."
   (lsp-bridge--kill-python-process))
 
 (add-hook 'kill-emacs-hook #'lsp-bridge-kill-process)
+
+(defalias 'lsp-bridge-stop-process #'lsp-bridge-kill-process)
 
 (defun lsp-bridge--kill-python-process ()
   "Kill LSP-Bridge background python process."
@@ -2637,9 +2639,11 @@ We need exclude `markdown-code-fontification:*' buffer in `lsp-bridge-monitor-be
 
 ;; We use `lsp-bridge-revert-buffer-flag' var avoid lsp-bridge send change_file request while execute `revert-buffer' command.
 (defun lsp-bridge--revert-buffer-advisor (orig-fun &optional arg &rest args)
-  ;; We need clean diagnostic overlays before revert action,
-  ;; otherwise some diagnostic overlays will keep in buffer after revert.
+  ;; We need clean diagnostic overlays before revert buffer.
   (lsp-bridge-diagnostic-hide-overlays)
+
+  ;; Hide inlay hint overlays before revert buffer.
+  (lsp-bridge-inlay-hint-hide-overlays)
 
   (setq-local lsp-bridge-revert-buffer-flag t)
   (apply orig-fun arg args)
