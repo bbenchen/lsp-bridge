@@ -486,7 +486,7 @@ Possible choices are basedpyright_ruff, pyright_ruff, pyright-background-analysi
   :type 'string)
 
 (defcustom lsp-bridge-tex-lsp-server "texlab"
-  "Default LSP server for (la)tex, you can choose `texlab' or `digestif'."
+  "Default LSP server for (la)tex, you can choose `texlab', `digestif' or `ltex-ls'."
   :type 'string)
 
 (defcustom lsp-bridge-csharp-lsp-server "omnisharp-dotnet"
@@ -503,6 +503,14 @@ Possible choices are basedpyright_ruff, pyright_ruff, pyright-background-analysi
 
 (defcustom lsp-bridge-lua-lsp-server "sumneko"
   "Default LSP server for Lua, you can choose `sumneko' or `lua-lsp'"
+  :type 'string)
+
+(defcustom lsp-bridge-verilog-lsp-server "verible"
+  "Default LSP server for Verilog, you can choose `verible', `svls'"
+  :type 'string)
+
+(defcustom lsp-bridge-xml-lsp-server "lemminx"
+  "Default LSP server for XML, you can choose `lemminx', `camells'"
   :type 'string)
 
 (defcustom lsp-bridge-use-wenls-in-org-mode nil
@@ -570,7 +578,7 @@ Possible choices are basedpyright_ruff, pyright_ruff, pyright-background-analysi
     (swift-mode .                                                                "swift-sourcekit")
     ((csharp-mode csharp-ts-mode) .                                              lsp-bridge-csharp-lsp-server)
     (kotlin-mode .                                                               "kotlin-language-server")
-    (verilog-mode .                                                              "verible")
+    (verilog-mode .                                                              lsp-bridge-verilog-lsp-server)
     (vhdl-mode .                                                                 "vhdl-tool")
     (svelte-mode .                                                               "svelteserver")
     (fsharp-mode .                                                               "fsautocomplete")
@@ -580,6 +588,21 @@ Possible choices are basedpyright_ruff, pyright_ruff, pyright-background-analysi
     (solidity-mode .                                                             "solidity")
     (gleam-ts-mode .                                                             "gleam")
     (ada-mode .                                                                  "ada-language-server")
+    (sml-mode .                                                                  "millet")
+    (fuzion-mode .                                                               "fuzion-language-server")
+    (fennel-mode .                                                               "fennel-ls")
+    (ttcn3-mode .                                                                "ntt")
+    (v-mode .                                                                    "v-analyzer")
+    (cwl-mode .                                                                  "benten")
+    (odin-mode .                                                                 "ols")
+    (ballerina-mode .                                                            "ballerina-lang-server")
+    (bibtex-mode .                                                               "citation-langserver")
+    (feature-mode .                                                              "cucumber-language-server")
+    (rego-mode .                                                                 "regal")
+    (puppet-mode .                                                               "puppet-languageserver")
+    (nxml-mode .                                                                 lsp-bridge-xml-lsp-server)
+    (robot-mode .                                                                "vscode-rf-language-server")
+    (vimrc-mode .                                                                "vim-language-server")
     (terraform-mode .                                                            "terraform-ls")
     (jsonnet-mode .                                                              "jsonnet-language-server")
     (glsl-mode .                                                                 "glsl-language-server")
@@ -693,6 +716,21 @@ Possible choices are basedpyright_ruff, pyright_ruff, pyright-background-analysi
     solidity-mode-hook
     gleam-ts-mode-hook
     ada-mode-hook
+    sml-mode-hook
+    fuzion-mode-hook
+    fennel-mode-hook
+    ttcn3-mode-hook
+    v-mode-hook
+    cwl-mode-hook
+    odin-mode-hook
+    ballerina-mode-hook
+    bibtex-mode-hook
+    feature-mode-hook
+    rego-mode-hook
+    puppet-mode-hook
+    nxml-mode-hook
+    robot-mode-hook
+    vimrc-mode-hook
     terraform-mode-hook
     jsonnet-mode-hook
     glsl-mode-hook
@@ -760,6 +798,21 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
     (raku-mode                  . raku-indent-offset)     ; Perl6/Raku
     (erlang-mode                . erlang-indent-level)    ; Erlang
     (ada-mode                   . ada-indent)             ; Ada
+    (sml-mode                   . sml-indent-level)       ; Standard ML
+    (fuzion-mode                . lsp-bridge-indent-two-level) ; Fuzion
+    (fennel-mode                . lsp-bridge-indent-two-level)  ; Fennel
+    (ttcn3-mode                 . lsp-bridge-indent-four-level) ; TTCN3
+    (v-mode                     . lsp-bridge-indent-four-level) ; V
+    (cwl-mode                   . lsp-bridge-indent-four-level)  ; Common Workflow
+    (odin-mode                  . lsp-bridge-indent-eight-level) ; Odin
+    (ballerina-mode             . ballerina-indent-offset)     ; Ballerina
+    (bibtex-mode                . lsp-bridge-indent-two-level) ; BibTex
+    (feature-mode               . feature-indent-level)   ; Cucumber
+    (rego-mode                  . lsp-bridge-indent-two-level) ; Rego
+    (puppet-mode                . puppet-indent-level)    ; Puppet
+    (nxml-mode                  . lsp-bridge-indent-two-level) ; XML
+    (robot-mode                 . robot-mode-basic-offset)      ; Robot
+    (vimrc-mode                 . lsp-bridge-indent-four-level) ; Vim
     (terraform-mode             . terraform-indent-level) ; Terraform
     (jsonnet-mode               . jsonnet-indent-level)   ; Jsonnet
     (glsl-mode                  . lsp-bridge-indent-two-level)  ; GLSL
