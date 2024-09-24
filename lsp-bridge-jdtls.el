@@ -61,7 +61,7 @@ E.g. Use `-javaagent:/home/user/.emacs.d/plugin/lombok.jar` to add lombok suppor
 
 (defun lsp-bridge-jdtls-project-cache-dir (project-path)
   "Project cache directory"
-  (let ((project-name (file-name-nondirectory project-path))
+  (let ((project-name (file-name-nondirectory (directory-file-name project-path)))
         (project-hash (md5 project-path)))
     (expand-file-name (concat project-name "-" project-hash)
                       lsp-bridge-jdtls-workspace)))
