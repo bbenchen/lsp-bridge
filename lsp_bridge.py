@@ -754,9 +754,10 @@ class LspBridge:
 
         lang_server_info = load_single_server_info(single_lang_server)
 
+        # If project_path is file path, not dir.
         if ((not os.path.isdir(project_path)) and
-            "support-single-file" in lang_server_info and
-            lang_server_info["support-single-file"] is False):
+            ("support-single-file" in lang_server_info and
+             lang_server_info["support-single-file"] is False)):
 
             if "project-files" in lang_server_info:
                 # If support-support-single-file is False,
