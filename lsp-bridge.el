@@ -982,7 +982,9 @@ So we build this macro to restore postion after code format."
       ;; Fetch project root path by `lsp-bridge-get-project-path-by-filepath' if it set by user.
       (funcall lsp-bridge-get-project-path-by-filepath filename)
     ;; Otherwise try to search up `.dir-locals.el' file
-    (car (dir-locals-find-file filename))))
+    (let* ((result (dir-locals-find-file filename))
+           (dir (if (consp result) (car result) result)))
+      (when dir (directory-file-name dir)))))
 
 (defun lsp-bridge--get-language-id-func (project-path file-path server-name extension-name)
   (if lsp-bridge-get-language-id
@@ -1424,6 +1426,28 @@ So we build this macro to restore postion after code format."
                                       (puthash (plist-get item :key) item completion-table))
                                     (puthash server-name completion-table lsp-items)
                                     (setq-local acm-backend-lsp-items lsp-items))
+                                  (lsp-bridge-try-completion))))
+
+(defun lsp-bridge-completion-workspace-symbol--record-items (filename
+                                                             filehost
+                                                             candidates
+                                                             server-name
+                                                             server-names)
+  ;; Adjust `gc-cons-threshold' to maximize temporary,
+  ;; make sure Emacs not do GC
+  (let ((gc-cons-threshold most-positive-fixnum))
+    (lsp-bridge--with-file-buffer filename filehost
+                                  ;; Save completion items.
+                                  (setq-local acm-backend-lsp-workspace-symbol-cache-candidates nil)
+                                  (setq-local acm-backend-lsp-workspace-symbol-server-names server-names)
+
+                                  (let* ((lsp-items acm-backend-lsp-workspace-symbol-items)
+                                         (completion-table (make-hash-table :test 'equal)))
+                                    (dolist (item candidates)
+                                      (plist-put item :annotation (capitalize (plist-get item :icon)))
+                                      (puthash (plist-get item :key) item completion-table))
+                                    (puthash server-name completion-table lsp-items)
+                                    (setq-local acm-backend-lsp-workspace-symbol-items lsp-items))
                                   (lsp-bridge-try-completion))))
 
 (defun lsp-bridge-check-predicate (pred current-function)
@@ -2368,6 +2392,12 @@ Default is `bottom-right', you can choose other value: `top-left', `top-right', 
       (setq-local acm-backend-lsp-server-names nil)
       (setq-local acm-backend-lsp-filepath (lsp-bridge-get-buffer-truename))
       (setq-local acm-backend-lsp-items (make-hash-table :test 'equal))
+
+      (setq-local acm-backend-lsp-workspace-symbol-cache-candidates nil)
+      (setq-local acm-backend-lsp-workspace-symbol-completion-position nil)
+      (setq-local acm-backend-lsp-workspace-symbol-completion-trigger-characters nil)
+      (setq-local acm-backend-lsp-workspace-symbol-server-names nil)
+      (setq-local acm-backend-lsp-workspace-symbol-items (make-hash-table :test 'equal))
 
       (when lsp-bridge-enable-signature-help
         (acm-run-idle-func lsp-bridge-signature-help-timer lsp-bridge-signature-help-fetch-idle 'lsp-bridge-signature-help-fetch))

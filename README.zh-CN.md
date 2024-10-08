@@ -30,7 +30,7 @@ lsp-bridge 的优势：
 ## 安装
 
 1. 安装 Emacs 28 及以上版本
-2. 安装 Python 依赖: `pip3 install epc orjson sexpdata six setuptools paramiko rapidfuzz` (orjson 是可选的， orjson 基于 Rust， 提供更快的 JSON 解析性能)
+2. 安装 Python 依赖: `pip3 install epc orjson sexpdata six setuptools paramiko rapidfuzz watchdog` (orjson 是可选的， orjson 基于 Rust， 提供更快的 JSON 解析性能)
 3. 安装 Elisp 依赖: [markdown-mode](https://github.com/jrblevin/markdown-mode), [yasnippet](https://github.com/joaotavora/yasnippet)
 4. 用 `git clone` 下载此仓库， 并替换下面配置中的 load-path 路径
 5. 把下面代码加入到你的配置文件 ~/.emacs 中：
@@ -472,6 +472,8 @@ lsp-bridge 针对许多语言都提供 2 个以上的语言服务器支持， �
 目前 capf 的设计不适合 LSP 协议， capf 补全后端只适合非 LSP 的场景， 设置 `(setq acm-enable-capf t)` 即可补全。
 
 如果没有 capf 补全， 请确保当前模式存在于 `acm-backend-capf-mode-list` 中， 如果不在 `acm-backend-capf-mode-list` 中， 欢迎 PR。
+
+注意： 打开 `acm-enable-capf` 后 Emacs 卡顿， 100% 是 capf 某个后端实现的问题， lsp-bridge 本身不会造成 Emacs 卡顿。
 
 ### pyenv 配置
 

@@ -32,7 +32,7 @@ Advantages of lsp-bridge:
 ## Installation
 
 1. Install Emacs 28 or higher version
-2. Install Python dependencies: `pip3 install epc orjson sexpdata six setuptools paramiko rapidfuzz` (orjson is optional, orjson is based on Rust, providing faster JSON parsing performance)
+2. Install Python dependencies: `pip3 install epc orjson sexpdata six setuptools paramiko rapidfuzz watchdog` (orjson is optional, orjson is based on Rust, providing faster JSON parsing performance)
 3. Install Elisp dependencies: [markdown-mode](https://github.com/jrblevin/markdown-mode), [yasnippet](https://github.com/joaotavora/yasnippet)
 
 4. Download this repository using git clone, and replace the load-path path in the configuration below.
@@ -478,6 +478,8 @@ If your language supports mixed multi-language servers, it is recommended to che
 Currently, the design of capf is not suitable for the LSP protocol. The capf completion backend is only suitable for non-LSP scenarios. You can enable completion by setting `(setq acm-enable-capf t)`.
 
 If there is no capf completion, please ensure that the current mode is present in `acm-backend-capf-mode-list`. If it's not in `acm-backend-capf-mode-list`, pull request are welcome.
+
+Note: after enable `acm-enable-capf` emacs becomes slow and its definitely a problem with the capf backend implementation not an issue with lsp-bridge itself
 
 ### pyenv configuration
 
