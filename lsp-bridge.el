@@ -177,6 +177,7 @@ Setting this to nil or 0 will turn off the heartbeat mechanism."
 
 (defcustom lsp-bridge-completion-stop-commands
   '("undo-tree-undo" "undo-tree-redo"
+    "undo-tree-visualize-redo" "undo-tree-visualize-undo"
     "kill-region" "delete-block-backward"
     "python-black-buffer" "acm-complete-or-expand-yas-snippet" "acm-insert-number-or-complete-candiate"
     "yank" "string-rectangle" "query-replace" "grammatical-edit-unwrap")
