@@ -108,6 +108,7 @@
 (require 'acm-backend-copilot)
 (require 'acm-backend-org-roam)
 (require 'acm-backend-jupyter)
+(require 'acm-backend-tabby)
 (require 'acm-backend-capf)
 (require 'acm-quick-access)
 
@@ -184,14 +185,16 @@
   :type 'string
   :group 'acm)
 
-(defcustom acm-completion-backend-merge-order '("mode-first-part-candidates"
-                                                "template-first-part-candidates"
-                                                "tabnine-candidates"
-                                                "copilot-candidates"
-                                                "codeium-candidates"
-                                                "template-second-part-candidates"
-                                                "mode-second-part-candidates")
-  "The merge order for completion backend."
+(defalias 'acm-completion-backend-merge-order 'acm-backend-order)
+
+(defcustom acm-backend-order '("mode-first-part-candidates"
+                               "template-first-part-candidates"
+                               "tabnine-candidates"
+                               "copilot-candidates"
+                               "codeium-candidates"
+                               "template-second-part-candidates"
+                               "mode-second-part-candidates")
+  "The order for completion backend."
   :type 'list
   :group 'acm)
 
@@ -200,6 +203,7 @@
                                                         "lsp-workspace-symbol-candidates"
                                                         "capf-candidates"
                                                         "jupyter-candidates"
+                                                        "tabby-candidates"
                                                         "ctags-candidates"
                                                         "citre-candidates"
                                                         "org-roam-candidates"
@@ -485,6 +489,7 @@ Only calculate template candidate when type last character."
          codeium-candidates
          copilot-candidates
          jupyter-candidates
+         tabby-candidates
          tempel-candidates
          mode-candidates
          mode-first-part-candidates
@@ -510,6 +515,9 @@ Only calculate template candidate when type last character."
 
     (when acm-enable-jupyter
       (setq jupyter-candidates (acm-backend-jupyter-candidates keyword)))
+
+    (when acm-enable-tabby
+      (setq tabby-candidates (acm-backend-tabby-candidates keyword)))
 
     (when acm-enable-capf
       (setq capf-candidates (acm-backend-capf-candiates keyword)))
@@ -548,6 +556,7 @@ Only calculate template candidate when type last character."
                                           ("lsp-workspace-symbol-candidates" lsp-workspace-symbol-candidates)
                                           ("capf-candidates" capf-candidates)
                                           ("jupyter-candidates" jupyter-candidates)
+                                          ("tabby-candidates" tabby-candidates)
                                           ("ctags-candidates" ctags-candidates)
                                           ("citre-candidates" citre-candidates)
                                           ("org-roam-candidates" org-roam-candidates)
@@ -616,7 +625,7 @@ Only calculate template candidate when type last character."
                                                      ("template-second-part-candidates" template-second-part-candidates)
                                                      ("mode-second-part-candidates" mode-second-part-candidates)
                                                      ))
-                                                 acm-completion-backend-merge-order))
+                                                 acm-backend-order))
               )))
 
     ;; Return candidates.
