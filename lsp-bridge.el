@@ -1454,15 +1454,21 @@ So we build this macro to restore postion after code format."
 
 (defun lsp-bridge-check-predicate (pred current-function)
   (if (functionp pred)
-      (let ((result (funcall pred)))
-        (when lsp-bridge-enable-log
-          (unless result
-            (with-current-buffer (get-buffer-create lsp-bridge-name)
-              (save-excursion
-                (goto-char (point-max))
-                (insert (format "\n*** %s execute predicate '%s' failed with result: '%s'\n"
-                                current-function pred result))))))
-        result)
+      (condition-case err
+          (let ((result (funcall pred)))
+            (when lsp-bridge-enable-log
+              (unless result
+                (with-current-buffer (get-buffer-create lsp-bridge-name)
+                  (save-excursion
+                    (goto-char (point-max))
+                    (insert (format "\n*** %s execute predicate '%s' failed with result: '%s'\n"
+                                  current-function pred result))))))
+            result)
+        (error
+         (message "Error in predicate '%s': %S at point %S in buffer %S, mode %S"
+                  pred err (point) (current-buffer) major-mode)
+         ;; return `t' if got error, avoid break `post-command-hook'
+         t))
     t))
 
 (defun lsp-bridge-try-completion ()
@@ -1586,8 +1592,10 @@ So we build this macro to restore postion after code format."
 
 (defun lsp-bridge--not-match-hide-keywords ()
   "Hide completion if string before cursor match some special keywords."
-  (let ((string (buffer-substring-no-properties (car (bounds-of-thing-at-point 'symbol))
-                                                (point))))
+  (let ((string (if (bounds-of-thing-at-point 'symbol)
+                    (buffer-substring-no-properties (car (bounds-of-thing-at-point 'symbol))
+                                                  (point))
+                  (char-to-string (char-before)))))
     (not (when (and (or (derived-mode-p 'ruby-mode)
                         (derived-mode-p 'ruby-ts-mode)
                         (derived-mode-p 'elixir-mode)
@@ -1654,9 +1662,19 @@ So we build this macro to restore postion after code format."
         :character (lsp-bridge--calculate-column)))
 
 (defun lsp-bridge--position-in-org ()
-  (list :line (1- (- (line-number-at-pos nil t)
-                     (line-number-at-pos (plist-get (car (cdr (org-element-context))) :begin) t)))
-        :character (lsp-bridge--calculate-column)))
+  "Get position in org source block.
+Return a plist with :line and :character.
+The line number is relative to the beginning of the source block."
+  (if (and (derived-mode-p 'org-mode)
+           (org-in-src-block-p))
+      (let* ((element (org-element-context))
+             (begin-pos (plist-get (car (cdr element)) :begin))
+             (current-line (line-number-at-pos nil t))
+             (block-line (line-number-at-pos begin-pos t))
+             (relative-line (max 0 (- current-line block-line 1))))
+        (list :line relative-line
+              :character (lsp-bridge--calculate-column)))
+    (lsp-bridge--position)))
 
 (defvar-local lsp-bridge--before-change-begin-pos nil)
 (defvar-local lsp-bridge--before-change-end-pos nil)
@@ -1756,10 +1774,14 @@ So we build this macro to restore postion after code format."
             (lsp-bridge-complete-other-backends)
 
             ;; Update search words backend.
-            (lsp-bridge-search-words-update
-             lsp-bridge--before-change-begin-pos
-             lsp-bridge--before-change-end-pos
-             change-text)
+            ;;
+            ;; disable it for org-mode when we enable `lsp-bridge-enable-org-babel'
+            ;; it will trigger with wrong pos due to we only update `pos' on src block
+            (unless (eq major-mode 'org-mode)
+              (lsp-bridge-search-words-update
+               lsp-bridge--before-change-begin-pos
+               lsp-bridge--before-change-end-pos
+               change-text))
             ))))))
 
 (defun lsp-bridge-complete-other-backends ()
@@ -2047,10 +2069,10 @@ Off by default."
 (defun lsp-bridge-find-def-fallback (position)
   (if (not (= (length lsp-bridge-peek-ace-list) 0))
       (progn
-	    (if (nth 0 lsp-bridge-peek-ace-list)
-	        (kill-buffer (nth 0 lsp-bridge-peek-ace-list)))
-	    (switch-to-buffer (nth 2 lsp-bridge-peek-ace-list))
-	    (goto-char (nth 1 lsp-bridge-peek-ace-list))))
+	(if (nth 0 lsp-bridge-peek-ace-list)
+	    (kill-buffer (nth 0 lsp-bridge-peek-ace-list)))
+	(switch-to-buffer (nth 2 lsp-bridge-peek-ace-list))
+	(goto-char (nth 1 lsp-bridge-peek-ace-list))))
   (message "[LSP-Bridge] No definition found.")
   (if (functionp lsp-bridge-find-def-fallback-function)
       (funcall lsp-bridge-find-def-fallback-function position)))
