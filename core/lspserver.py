@@ -112,18 +112,21 @@ class LspServerSender(MessageSender):
         ), **kwargs)
 
     def send_message(self, message: dict):
-        json_content = json.dumps(message)
+        # message_type is not valid key of JSONRPC, we need remove message_type before send LSP server.
+        message_type = message.get("message_type")
+        message.pop("message_type")
 
+        # Parse json content.
+        json_content = json.dumps(message)
         message_str = "Content-Length: {}\r\n\r\n{}".format(len(json_content), json_content)
 
+        # Send to LSP server.
         self.process.stdin.write(message_str.encode("utf-8"))    # type: ignore
         self.process.stdin.flush()    # type: ignore
 
         # InlayHint will got error 'content modified' error if it followed immediately by a didChange request.
         # So we need INLAY_HINT_REQUEST_ID_DICT to contain documentation path to send retry request.
         record_inlay_hint_request(message)
-
-        message_type = message.get("message_type")
 
         if message_type == "request" and \
            not message.get('method', 'response') == 'textDocument/documentSymbol':
@@ -281,6 +284,7 @@ class LspServer:
         self.workspace_symbol_provider = False
         self.inlay_hint_provider = False
         self.semantic_tokens_provider = False
+        self.save_file_provider = False
 
         self.work_done_progress_title = ""
 
@@ -538,21 +542,22 @@ class LspServer:
         })
 
     def send_did_save_notification(self, filepath, buffer_name):
-        args = {
-            "textDocument": {
-                "uri": path_to_uri(filepath)
-            }
-        }
-
-        # Fetch buffer whole content to LSP server if server capability 'includeText' is True.
-        if self.save_include_text:
-            args = merge(args, {
+        if self.save_file_provider:
+            args = {
                 "textDocument": {
-                    "text": get_buffer_content(filepath, buffer_name)
+                    "uri": path_to_uri(filepath)
                 }
-            })
+            }
 
-        self.sender.send_notification("textDocument/didSave", args)
+            # Fetch buffer whole content to LSP server if server capability 'includeText' is True.
+            if self.save_include_text:
+                args = merge(args, {
+                    "textDocument": {
+                        "text": get_buffer_content(filepath, buffer_name)
+                    }
+                })
+
+            self.sender.send_notification("textDocument/didSave", args)
 
     def send_workspace_did_change_watched_files(self, filepath, change_type):
         self.sender.send_notification("workspace/didChangeWatchedFiles", {
@@ -758,7 +763,8 @@ class LspServer:
             ]),
             ("save_include_text", ["result", "capabilities", "textDocumentSync", "save", "includeText"]),
             ("text_document_sync", ["result", "capabilities", "textDocumentSync"]),
-            ("semantic_tokens_provider", ["result", "capabilities", "semanticTokensProvider"])]
+            ("semantic_tokens_provider", ["result", "capabilities", "semanticTokensProvider"]),
+            ("save_file_provider", ["result", "capabilities", "textDocumentSync", "willSave"])]
 
         for attr, path in attributes_to_set:
             self.set_attribute_from_message(message, attr, path)
