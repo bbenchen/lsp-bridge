@@ -35,10 +35,10 @@ Enable this option will cause interfering digital insertion sometimes."
 (defun acm-keymap--quick-access-modifier ()
   "Return string representation of the `acm-quick-access-modifier'."
   (if-let* ((modifier (assoc-default acm-quick-access-modifier
-                                     '((meta . "M")
-                                       (super . "s")
-                                       (hyper . "H")
-                                       (control . "C")))))
+                                    '((meta . "M")
+                                      (super . "s")
+                                      (hyper . "H")
+                                      (control . "C")))))
       modifier
     (warn "acm-quick-access-modifier value unknown: %S"
           acm-quick-access-modifier)
