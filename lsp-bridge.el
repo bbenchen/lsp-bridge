@@ -459,7 +459,7 @@ Then LSP-Bridge will start by gdb, please send new issue with `*lsp-bridge*' buf
     (("wxml") . "wxml-language-server")
     (("html") . "vscode-html-language-server")
     (("astro") . "astro-ls")
-    (("typ") . "typst-lsp")
+    (("typ") . "tinymist")
     )
   "The lang server rule for file extension."
   :type 'cons)
@@ -702,6 +702,7 @@ If nil, lsp-bridge would try to detect by default."
     kotlin-mode-hook
     vhdl-mode-hook
     typst-mode-hook
+    typst-ts-mode-hook
     graphql-mode-hook
     graphql-ts-mode-hook
     c-ts-mode-hook
@@ -882,6 +883,7 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
     (sh-mode .            "\$\{")
     (bash-mode .          "\$\{")
     (bash-ts-mode .       "\$\{")
+    (typst-ts-mode .      "\$\{")
     (typst--base-mode .   "\$\{")
     (typst--code-mode .   "\$\{")
     (typst--math-mode .   "\$\{")
@@ -1245,24 +1247,6 @@ So we build this macro to restore postion after code format."
   (interactive)
   (lsp-bridge-call-async "profile_dump"))
 
-(defun lsp-bridge--build-process-environment ()
-  "Create lsp-bridge subprocess process environments"
-  (let ((path (getenv "PATH"))
-        (pyvenv-bin-path (file-name-directory lsp-bridge-python-command))
-        (environments (seq-filter (lambda (env) (not (string-match-p "^PATH=" env)))
-                                  process-environment)))
-
-    ;; When `lsp-bridge-python-command' is the default value (ie: python[3.X]),
-    ;; use the original value of the environment variable `PATH',
-    ;; otherwise add the `pyvenv' bin directory to the head of the `PATH' environment variable.
-    (cl-pushnew (concat "PATH=" (cond ((not pyvenv-bin-path) path)
-                                      ((not (file-exists-p pyvenv-bin-path)) path)
-                                      ((string-match-p pyvenv-bin-path path) path)
-                                      (t (prog2
-                                             (message "[LSP-Bridge] Add '%s' to executable path." pyvenv-bin-path)
-                                             (string-join (list pyvenv-bin-path path) path-separator))))) environments)
-    environments))
-
 (defun lsp-bridge-start-process ()
   "Start LSP-Bridge process if it isn't started."
   (if (lsp-bridge-process-live-p)
@@ -1287,8 +1271,7 @@ So we build this macro to restore postion after code format."
         (setq lsp-bridge-internal-process-args lsp-bridge-args))
 
       ;; Start python process.
-      (let ((process-connection-type (not (lsp-bridge--called-from-wsl-on-windows-p)))
-            (process-environment (lsp-bridge--build-process-environment)))
+      (let ((process-connection-type (not (lsp-bridge--called-from-wsl-on-windows-p))))
         (setq lsp-bridge-internal-process
               (apply 'start-process
                      lsp-bridge-name lsp-bridge-name
