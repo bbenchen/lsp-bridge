@@ -12,7 +12,6 @@
 #   "paramiko",
 #   "rapidfuzz",
 #   "watchdog",
-#   "packaging",
 # ]
 # ///
 
