@@ -450,6 +450,8 @@ Then LSP-Bridge will start by gdb, please send new issue with `*lsp-bridge*' buf
     (("vue") . "volar_emmet")
     (("ts")  . "typescript_eslint")
     (("tsx") . "typescriptreact_eslint")
+    (("component.html") . "angular_template_html")
+    (("component.ts") . "angular_template_typescript")
     )
   "The multi lang server rule for file extension."
   :type 'cons)
@@ -1084,7 +1086,7 @@ So we build this macro to restore postion after code format."
 
 (defun lsp-bridge-get-lang-server-by-extension (filename extension-list)
   "Get lang server for file extension."
-  (when-let* ((file-extension (file-name-extension filename))
+  (when-let* ((file-extension (substring filename (+ (cl-position ?. filename) 1) (length filename)))
               (langserver-info (cl-find-if
                                 (lambda (pair)
                                   (let ((extension (car pair)))
@@ -1711,21 +1713,23 @@ The line number is relative to the beginning of the source block."
 
 (defun lsp-bridge-monitor-before-change (begin end)
   ;; Use `save-match-data' protect match data, avoid conflict with command call `search-regexp'.
-  (save-match-data
-    (when (lsp-bridge-has-lsp-server-p)
-      ;; Send whole org src block to lsp server.
-      (lsp-bridge-org-babel-send-src-block-to-lsp-server))
+  (save-restriction
+    (widen)
+    (save-match-data
+      (when (lsp-bridge-has-lsp-server-p)
+        ;; Send whole org src block to lsp server.
+        (lsp-bridge-org-babel-send-src-block-to-lsp-server))
 
-    ;; Set `lsp-bridge--before-change-begin-pos' and `lsp-bridge--before-change-end-pos'
-    ;; if `lsp-bridge-has-lsp-server-p' or `lsp-bridge-is-remote-file'
-    (when (or (lsp-bridge-has-lsp-server-p)
-              (lsp-bridge-is-remote-file))
-      (setq-local lsp-bridge--before-change-begin-point begin)
-      (setq-local lsp-bridge--before-change-end-point end)
+      ;; Set `lsp-bridge--before-change-begin-pos' and `lsp-bridge--before-change-end-pos'
+      ;; if `lsp-bridge-has-lsp-server-p' or `lsp-bridge-is-remote-file'
+      (when (or (lsp-bridge-has-lsp-server-p)
+                (lsp-bridge-is-remote-file))
+        (setq-local lsp-bridge--before-change-begin-point begin)
+        (setq-local lsp-bridge--before-change-end-point end)
 
-      (setq-local lsp-bridge--before-change-begin-pos (lsp-bridge--point-position begin))
-      (setq-local lsp-bridge--before-change-end-pos (lsp-bridge--point-position end))
-      )))
+        (setq-local lsp-bridge--before-change-begin-pos (lsp-bridge--point-position begin))
+        (setq-local lsp-bridge--before-change-end-pos (lsp-bridge--point-position end))
+        ))))
 
 (defun lsp-bridge-monitor-post-self-insert ()
   ;; Make sure this function be called after `electric-pair-mode'
@@ -1755,62 +1759,64 @@ The line number is relative to the beginning of the source block."
     (unless (and (equal begin lsp-bridge--before-change-begin-point)
                  (equal end lsp-bridge--before-change-end-point))
       ;; Use `save-match-data' protect match data, avoid conflict with command call `search-regexp'.
-      (save-match-data
-        (unless lsp-bridge-revert-buffer-flag
-          (let ((change-text (buffer-substring-no-properties begin end)))
-            ;; Record last command to `lsp-bridge-last-change-command'.
-            (setq lsp-bridge-last-change-command (format "%s" this-command))
+      (save-restriction
+        (widen)
+        (save-match-data
+          (unless lsp-bridge-revert-buffer-flag
+            (let ((change-text (buffer-substring-no-properties begin end)))
+              ;; Record last command to `lsp-bridge-last-change-command'.
+              (setq lsp-bridge-last-change-command (format "%s" this-command))
 
-            ;; Record last change position to avoid popup outdate completions.
-            (lsp-bridge-record-last-change-position)
+              ;; Record last change position to avoid popup outdate completions.
+              (lsp-bridge-record-last-change-position)
 
-            ;; Set `lsp-bridge-last-change-is-delete-command-p'
-            (setq lsp-bridge-last-change-is-delete-command-p (> length 0))
+              ;; Set `lsp-bridge-last-change-is-delete-command-p'
+              (setq lsp-bridge-last-change-is-delete-command-p (> length 0))
 
-            ;; Sync change for org babel if we enable it
-            (lsp-bridge-org-babel-monitor-after-change begin end length)
+              ;; Sync change for org babel if we enable it
+              (lsp-bridge-org-babel-monitor-after-change begin end length)
 
-            ;; Send LSP requests.
-            (when (or (lsp-bridge-call-file-api-p)
-                      (lsp-bridge-is-remote-file))
+              ;; Send LSP requests.
+              (when (or (lsp-bridge-call-file-api-p)
+                        (lsp-bridge-is-remote-file))
 
-              ;; Uncomment below code to debug `change_file' protocol.
-              ;; (message (format "change_file: '%s' '%s' '%s' '%s' '%s' '%s'"
-              ;;                  length
-              ;;                  lsp-bridge--before-change-begin-pos
-              ;;                  lsp-bridge--before-change-end-pos
-              ;;                  (lsp-bridge--position)
-              ;;                  change-text
-              ;;                  (buffer-substring-no-properties (line-beginning-position) (point))
-              ;;                  ))
+                ;; Uncomment below code to debug `change_file' protocol.
+                ;; (message (format "change_file: '%s' '%s' '%s' '%s' '%s' '%s'"
+                ;;                  length
+                ;;                  lsp-bridge--before-change-begin-pos
+                ;;                  lsp-bridge--before-change-end-pos
+                ;;                  (lsp-bridge--position)
+                ;;                  change-text
+                ;;                  (buffer-substring-no-properties (line-beginning-position) (point))
+                ;;                  ))
 
-              ;; Send change_file request to trigger LSP completion.
-              (lsp-bridge-call-file-api "change_file"
-                                        lsp-bridge--before-change-begin-pos
-                                        lsp-bridge--before-change-end-pos
-                                        length
-                                        change-text
-                                        (lsp-bridge--position)
-                                        (acm-char-before)
-                                        (buffer-name)
-                                        (acm-get-input-prefix))
+                ;; Send change_file request to trigger LSP completion.
+                (lsp-bridge-call-file-api "change_file"
+                                          lsp-bridge--before-change-begin-pos
+                                          lsp-bridge--before-change-end-pos
+                                          length
+                                          change-text
+                                          (lsp-bridge--position)
+                                          (acm-char-before)
+                                          (buffer-name)
+                                          (acm-get-input-prefix))
 
-              ;; Send inlay hint request.
-              (lsp-bridge-inlay-hint-try-send-request))
+                ;; Send inlay hint request.
+                (lsp-bridge-inlay-hint-try-send-request))
 
-            ;; Complete other non-LSP backends.
-            (lsp-bridge-complete-other-backends)
+              ;; Complete other non-LSP backends.
+              (lsp-bridge-complete-other-backends)
 
-            ;; Update search words backend.
-            ;;
-            ;; disable it for org-mode when we enable `lsp-bridge-enable-org-babel'
-            ;; it will trigger with wrong pos due to we only update `pos' on src block
-            (unless (eq major-mode 'org-mode)
-              (lsp-bridge-search-words-update
-               lsp-bridge--before-change-begin-pos
-               lsp-bridge--before-change-end-pos
-               change-text))
-            ))))))
+              ;; Update search words backend.
+              ;;
+              ;; disable it for org-mode when we enable `lsp-bridge-enable-org-babel'
+              ;; it will trigger with wrong pos due to we only update `pos' on src block
+              (unless (eq major-mode 'org-mode)
+                (lsp-bridge-search-words-update
+                 lsp-bridge--before-change-begin-pos
+                 lsp-bridge--before-change-end-pos
+                 change-text))
+              )))))))
 
 (defun lsp-bridge-complete-other-backends ()
   (let* ((this-command-string (format "%s" this-command))
@@ -2097,10 +2103,10 @@ Off by default."
 (defun lsp-bridge-find-def-fallback (position)
   (if (not (= (length lsp-bridge-peek-ace-list) 0))
       (progn
-	(if (nth 0 lsp-bridge-peek-ace-list)
-	    (kill-buffer (nth 0 lsp-bridge-peek-ace-list)))
-	(switch-to-buffer (nth 2 lsp-bridge-peek-ace-list))
-	(goto-char (nth 1 lsp-bridge-peek-ace-list))))
+	    (if (nth 0 lsp-bridge-peek-ace-list)
+	        (kill-buffer (nth 0 lsp-bridge-peek-ace-list)))
+	    (switch-to-buffer (nth 2 lsp-bridge-peek-ace-list))
+	    (goto-char (nth 1 lsp-bridge-peek-ace-list))))
   (message "[LSP-Bridge] No definition found.")
   (if (functionp lsp-bridge-find-def-fallback-function)
       (funcall lsp-bridge-find-def-fallback-function position)))
@@ -2258,12 +2264,19 @@ Then we need call `lsp-bridge--set-mark-ring-in-new-buffer' in new buffer after 
   (switch-to-buffer-other-window
    (get-buffer-create lsp-bridge-buffer-documentation-buffer) norecord))
 
+(defun lsp-bridge-replace-html-entities ()
+  (save-excursion
+    (goto-char (point-min))
+    (while (search-forward "&nbsp;" nil t)
+      (replace-match " "))))
+
 (defun lsp-bridge-show-documentation--callback (value)
   (let ((buffer (get-buffer-create lsp-bridge-buffer-documentation-buffer)))
     (with-current-buffer buffer
       (read-only-mode -1)
       (erase-buffer)
       (insert value)
+      (lsp-bridge-replace-html-entities)
       (setq-local truncate-lines nil)
       (acm-markdown-render-content t)
       (read-only-mode 1)
@@ -2419,17 +2432,6 @@ Default is `bottom-right', you can choose other value: `top-left', `top-right', 
   "Enable LSP Bridge mode."
 
   (add-hook 'post-command-hook #'lsp-bridge-start-process)
-
-  (when lsp-bridge-disable-electric-indent
-    ;; NOTE:
-    ;; Don't enable `electric-indent-mode' in lsp-bridge, `electric-indent-post-self-insert-function'
-    ;;
-    ;; It will try adjust line indentation *AFTER* user insert character,
-    ;; this additional indent action send excessive `change_file' request to lsp server.
-    ;; LSP server will confused those indent action and return wrong completion candidates.
-    ;;
-    ;; Example, when you enable `electric-indent-mode', when you type `std::', you will got wrong completion candidates from LSP server.
-    (electric-indent-local-mode -1))
 
   ;; Don't enable lsp-bridge when current buffer is acm buffer.
   (unless (or (equal (buffer-name (current-buffer)) acm-buffer)
@@ -3047,20 +3049,6 @@ then BODY is executed within that buffer."
 (defun lsp-bridge-tramp-show-hostnames ()
   (interactive)
   (lsp-bridge-call-async "message_hostnames"))
-
-
-(defcustom lsp-bridge-disable-electric-indent t
-  "`electric-indent-post-self-insert-function' will cause return wrong completion candidates from LSP server, such as type `std::' in C++.
-
-Please turn this option on if you want fix `std::' completion candidates, at same time, `electric-indent-mode' will disable by lsp-bridge.
-
-Please keep this option off if you need `electric-indent-mode' feature more.
-
-It's a bug of `electric-indent-mode' that it will try adjust line indentation *AFTER* user insert character,
-this additional indent action send excessive `change_file' request to lsp server.
-LSP server will confused those indent action and return wrong completion candidates.
-
-I haven't idea how to make lsp-bridge works with `electric-indent-mode', PR are welcome.")
 
 
 (defun lsp-bridge-sync-tramp-remote (force)
