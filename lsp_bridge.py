@@ -168,10 +168,16 @@ class LspBridge:
             for name in export_functions:
                 self.build_prefix_function(search_backend, search_backend, name)
 
-        # Set log level.
-        [enable_lsp_server_log] = get_emacs_vars(["lsp-bridge-enable-log"])
-        if enable_lsp_server_log:
-            logger.setLevel(logging.DEBUG)
+        [lsp_server_log_level] = get_emacs_vars(["lsp-bridge-log-level"])
+        lsp_server_log_level = str(lsp_server_log_level)
+        if lsp_server_log_level in ["debug", "warning", "error", "critical"]:
+            log_level_dict = {
+                "debug": logging.DEBUG,
+                "warning": logging.WARNING,
+                "error": logging.ERROR,
+                "critical": logging.CRITICAL,
+            }
+            logger.setLevel(log_level_dict[lsp_server_log_level])
 
         # All LSP server response running in message_thread.
         self.message_queue = queue.Queue()
