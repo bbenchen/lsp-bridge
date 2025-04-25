@@ -571,7 +571,7 @@ If nil, lsp-bridge would try to detect by default."
     ((go-mode go-ts-mode) .                                                      "gopls")
     (groovy-mode .                                                               "groovy-language-server")
     (haskell-mode .                                                              "hls")
-    (lua-mode .                                                                  lsp-bridge-lua-lsp-server)
+    ((lua-mode lua-ts-mode)  .                                                   lsp-bridge-lua-lsp-server)
     (markdown-mode .                                                             lsp-bridge-markdown-lsp-server)
     (dart-mode .                                                                 "dart-analysis-server")
     (scala-mode .                                                                "metals")
@@ -658,6 +658,7 @@ If nil, lsp-bridge would try to detect by default."
     ruby-mode-hook
     ruby-ts-mode-hook
     lua-mode-hook
+    lua-ts-mode-hook
     move-mode-hook
     rust-mode-hook
     rstml-ts-mode-hook
@@ -825,6 +826,7 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
     (json-mode                  . js-indent-level)  ; JSON
     (json-ts-mode               . js-indent-level)  ; JSON
     (lua-mode                   . lua-indent-level) ; Lua
+    (lua-ts-mode                . lua-ts-indent-offset) ; Lua
     (objc-mode                  . c-basic-offset)   ; Objective C
     (php-mode                   . c-basic-offset)   ; PHP
     (php-ts-mode                . php-ts-mode-indent-offset) ; PHP
