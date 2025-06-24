@@ -572,7 +572,7 @@ If nil, lsp-bridge would try to detect by default."
     (groovy-mode .                                                               "groovy-language-server")
     (haskell-mode .                                                              "hls")
     ((lua-mode lua-ts-mode)  .                                                   lsp-bridge-lua-lsp-server)
-    (markdown-mode .                                                             lsp-bridge-markdown-lsp-server)
+    ((markdown-mode gfm-mode) .                                                  lsp-bridge-markdown-lsp-server)
     (dart-mode .                                                                 "dart-analysis-server")
     (scala-mode .                                                                "metals")
     ((js2-mode js-mode js-ts-mode rjsx-mode) .                                   "javascript")
@@ -617,6 +617,7 @@ If nil, lsp-bridge would try to detect by default."
     (solidity-mode .                                                             "solidity")
     (gleam-ts-mode .                                                             "gleam")
     (ada-mode .                                                                  "ada-language-server")
+    (hyprlang-ts-mode .                                                          "hyprls")
     (scad-mode .                                                                 "openscad-lsp")
     (sml-mode .                                                                  "millet")
     (fuzion-mode .                                                               "fuzion-language-server")
@@ -750,6 +751,7 @@ If nil, lsp-bridge would try to detect by default."
     solidity-mode-hook
     gleam-ts-mode-hook
     ada-mode-hook
+    hyprlang-ts-mode-hook
     scad-mode-hook
     sml-mode-hook
     fuzion-mode-hook
@@ -835,6 +837,7 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
     (raku-mode                  . raku-indent-offset)  ; Perl6/Raku
     (erlang-mode                . erlang-indent-level) ; Erlang
     (ada-mode                   . ada-indent)          ; Ada
+    (hyprlang-ts-mode           . hyprlang-ts-mode-indent-offset) ; Hyprlang
     (scad-mode                  . lsp-bridge-indent-two-level) ; OpenSCAD
     (sml-mode                   . sml-indent-level) ; Standard ML
     (fuzion-mode                . lsp-bridge-indent-two-level) ; Fuzion
