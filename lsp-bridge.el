@@ -290,6 +290,12 @@ After set `lsp-bridge-completion-obey-trigger-characters-p' to nil, you need use
   :safe (lambda (v) (or (null v) (stringp v)))
   :group 'lsp-bridge)
 
+(defcustom lsp-bridge-user-ssh-agent nil
+  "use ssh-agent in SSH connections."
+  :type 'boolean
+  :safe #'booleanp
+  :group 'lsp-bridge)
+
 (defcustom lsp-bridge-symbols-enable-which-func nil
   "Wether use lsp-bridge in which-func."
   :type 'boolean
@@ -419,7 +425,9 @@ LSP-Bridge will enable completion inside string literals."
                                                    "python3.exe")
                                                   ((executable-find "python.exe")
                                                    "python.exe")))
-                                           (t (cond ((executable-find "pypy3")
+                                           (t (cond ((executable-find "python-lsp-bridge")
+                                                     "python-lsp-bridge")
+                                                    ((executable-find "pypy3")
                                                      "pypy3")
                                                     ((executable-find "python3")
                                                      "python3")
