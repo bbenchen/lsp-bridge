@@ -73,6 +73,7 @@ from core.handler.rust_expand_macro import RustExpandMacro # noqa: F401
 from core.handler.rust_reload_workspace import RustReloadWorkspace # noqa: F401
 from core.handler.workspace_diagnostics import WorkspaceDiagnostics  # noqa: F401
 from core.handler.diagnostic import Diagnostic # noqa: F401
+from core.handler.breadcrumb import Breadcrumb # noqa: F401
 from core.handler.jdtls.jdtls_list_overridable_methods import JdtlsListOverridableMethods  # noqa: F401
 from core.handler.jdtls.jdtls_add_overridable_methods import JdtlsAddOverridableMethods  # noqa: F401
 from core.handler.jdtls.jdtls_project_is_test_file import JdtlsProjectIsTestFile  # noqa: F401

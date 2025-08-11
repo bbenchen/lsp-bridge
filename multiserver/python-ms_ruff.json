@@ -18,5 +18,7 @@
   "document_symbol": "python-ms",
   "workspace_symbol": "python-ms",
   "semantic_tokens": "python-ms",
-  "inlay_hint": "python-ms"
+  "inlay_hint": "python-ms",
+  "imenu": "python-ms",
+  "breadcrumb": "python-ms"
 }
