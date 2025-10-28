@@ -900,7 +900,7 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
     (rstml-ts-mode              . rust-ts-mode-indent-offset) ; Rust
     (rustic-mode                . rustic-indent-offset)       ; Rust
     (scala-mode                 . scala-indent:step)          ; Scala
-    (scala-ts-mode              . scala-indent:step)          ; Scala
+    (scala-ts-mode              . scala-ts-indent-offset)     ; Scala
     (powershell-mode            . powershell-indent)      ; PowerShell
     (ess-mode                   . ess-indent-offset)      ; ESS (R)
     (yaml-mode                  . yaml-indent-offset)     ; YAML
