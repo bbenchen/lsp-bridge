@@ -263,13 +263,17 @@ lsp-bridge 针对许多语言都提供 2 个以上的语言服务器支持， �
 - `lsp-bridge-php-lsp-server`: PHP 语言的服务器， 可以选择`intelephense`或者`phpactor`
 - `lsp-bridge-tex-lsp-server`: LaTeX 语言的服务器， 可以选择`texlab`,`digestif`或者`ltex-ls`
 - `lsp-bridge-csharp-lsp-server`: C#语言的服务器， 可以选择`omnisharp-mono`, `omnisharp-dotnet` 或者 `csharp-ls`, 注意你需要给 OmniSharp 文件**执行权限**才能正常工作
-- `lsp-bridge-python-multi-lsp-server`: Python 多语言服务器， 可以选择 `basedpyright_ruff`, `pyright_ruff`, `jedi_ruff`, `python-ms_ruff`, `pylsp_ruff`, `ty_ruff`
 - `lsp-bridge-nix-lsp-server`: Nix 语言的服务器， 可以选择 `rnix-lsp`, `nixd` 或者 `nil`
 - `lsp-bridge-markdown-lsp-server`: Markdown 语言的服务器， 可以选择 `vale-ls` 或者 `marksman`
-- `lsp-bridge-lua-lsp-server`: Lua 语言的服务器， 可以选择 `sumneko`, 或者 `lua-lsp`
+- `lsp-bridge-lua-lsp-server`: Lua 语言的服务器， 可以选择 `sumneko` 或者 `lua-lsp`
 - `lsp-bridge-verilog-lsp-server`: Verilog 语言的服务器， 可以选择 `verible`, 或者 `svls`
-- `lsp-bridge-xml-lsp-server`: XML 语言的服务器， 可以选择 `lemminx`, 或者 `camells`
+- `lsp-bridge-xml-lsp-server`: XML 语言的服务器， 可以选择 `lemminx` 或者 `camells`
 - `lsp-bridge-cmake-lsp-server`: CMake 语言的服务器， 可以选择 `cmake-language-server`, 或者 `neocmakelsp`
+- `lsp-bridge-r-lsp-server`: R 语言的服务器， 可以选择 `rlanguageserver` 或者 `air`
+
+- `lsp-bridge-python-multi-lsp-server`: Python 多语言服务器， 可以选择 `basedpyright_ruff`, `pyright_ruff`, `jedi_ruff`, `python-ms_ruff`, `pylsp_ruff`, `ty_ruff`
+- `lsp-bridge-r-multi-lsp-server`: R 多语言服务器, 可以选择 `rlanguageserver_air`
+
 
 ## 选项
 
@@ -475,6 +479,7 @@ lsp-bridge 针对许多语言都提供 2 个以上的语言服务器支持， �
 | VHDL        | [vhdl-tool](https://www.vhdltool.com)                                                              |                                                                                                                                                                                                                               |
 | Vim        | [vim-language-server](https://github.com/iamcco/vim-language-server)                                                              | `npm install -g vim-language-server`                                                                                                                                                                                                                              |
 | Vue         | [volar](https://github.com/johnsoncodehk/volar)                                                    | `npm install -g typescript @vue/language-server`                                                                                                                                                                              |
+| WebAssembly | [wasm-language-tools](https://github.com/g-plane/wasm-language-tools)                              |                                                                                                                                                                                                                                |
 | Wxml        | [wxml-language-server](https://github.com/chemzqm/wxml-languageserver)                             |                                                                                                                                                                                                                               |
 | XML        | [lemminx](https://github.com/eclipse/lemminx)                   | `lsp-bridge-xml-lsp-server` 设置为 `lemminx`                                                                                                                                                                                         |
 |         | [camells](https://github.com/camel-tooling/camel-language-server/)                   | `lsp-bridge-xml-lsp-server` 设置为 `camells`                                                                                                                                                                                         |
