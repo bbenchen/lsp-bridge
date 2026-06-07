@@ -3109,25 +3109,26 @@ We need exclude `markdown-code-fontification:*' buffer in `lsp-bridge-monitor-be
         (force-mode-line-update)))))
 
 (defun lsp-bridge--format-progress-message (progress)
-  "Extract progress percentage and icon from raw LSP string."
-  (let* (;; 1. Regex to extract the percentage like (96%%)
-         ;; We look for the pattern in parentheses
+  "Format progress message for mode-line display."
+  (let* (;; Extract percentage like (96%%)
          (percent-match (string-match "\\(([0-9]+%%)\\)" progress))
          (percent (if percent-match
-                      (match-string 1 progress)
+                      (replace-regexp-in-string "[()]" "" (match-string 1 progress))
                     ""))
-         ;; 2. Define the icon
+         ;; Extract stage name: strip rustAnalyzer/ prefix, take word before space/paren
+         (stage (when (string-match "\\(?:rustAnalyzer/\\)?\\([A-Za-z ]+?\\)\\(?:[[:space:]]*(\\|[[:space:]]+[0-9]\\|$\\)" progress)
+                  (string-trim (match-string 1 progress))))
          (icon (when (fboundp 'nerd-icons-codicon)
                  (nerd-icons-codicon "nf-cod-sync"))))
-
-    (if (string-blank-p percent)
-        ;; If no percentage found, return empty (or a minimal label if needed)
-        ""
-      ;; Final format: Icon + Percentage
-      ;; We remove the inner parentheses for a cleaner look, e.g., "96%%"
-      (format "%s %s"
-              (or icon "")
-              (replace-regexp-in-string "[()]" "" percent)))))
+    (cond
+     ;; Both stage and percent
+     ((and stage (not (string-blank-p percent)))
+      (format "%s %s %s" (or icon "") stage percent))
+     ;; Only stage
+     (stage
+      (format "%s %s" (or icon "") stage))
+     ;; Fallback
+     (t ""))))
 
 ;;; Mode-line
 ;;;
