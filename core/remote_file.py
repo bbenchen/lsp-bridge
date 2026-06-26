@@ -479,13 +479,21 @@ class FileElispServer(RemoteFileServer):
         # remote server lsp-bridge process use this cient_socket to call elisp function from local Emacs.
         log_time(f"Client connect from {self.client_address[0]}:{self.client_address[1]}")
 
-        self.rpcs.clear()
+        for rpc in self.rpcs.values():
+            rpc["result"] = None
+            rpc["completion"].set()
+
+        self.lsp_bridge.init_search_backends_complete_event.clear()
+
         threading.Thread(target=super().handle_client).start()
 
-        self.lsp_bridge.init_search_backends()
-        log_time("init_search_backends finish")
-        # Signal that init_search_backends is done
-        self.lsp_bridge.init_search_backends_complete_event.set()
+        try:
+            self.lsp_bridge.init_search_backends()
+            log_time("init_search_backends finish")
+        except Exception:
+            logger.exception("init_search_backends failed")
+        finally:
+            self.lsp_bridge.init_search_backends_complete_event.set()
 
     def handle_message(self, message):
         if message == "Connect":
@@ -505,6 +513,7 @@ class FileElispServer(RemoteFileServer):
             self.send_message(message)
         except Exception as e:
             logger.exception(e)
+            del self.rpcs[ts]
             return None
         else:
             cpl.wait()
@@ -526,10 +535,6 @@ class FileCommandServer(RemoteFileServer):
         self.lsp_bridge.init_search_backends_complete_event.wait()
 
         super().handle_client()
-
-        # close all files when client disconnects
-        self.lsp_bridge.file_server.close_all_files()
-        self.lsp_bridge.close_all_files()
 
     def handle_message(self, message):
         if message["command"] == "lsp_request":

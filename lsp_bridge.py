@@ -273,6 +273,13 @@ class LspBridge:
         if server_host in self.host_ip_dict:
             server_host = self.host_ip_dict[server_host]
 
+        if server_host not in self.host_names and is_valid_ip(server_host):
+            for known_host, conf in self.host_names.items():
+                if conf.get('hostname') == server_host:
+                    self.host_ip_dict[server_host] = known_host
+                    server_host = known_host
+                    break
+
         if server_host not in self.host_names:
             message_emacs(f"{server_host} is not connected, try reconnect...")
             self.sync_tramp_remote_complete_event.clear()
@@ -372,7 +379,7 @@ class LspBridge:
                     else:
                         # connection restored, try to send out the message
                         client.send_message(data["message"])
-                        eval_in_emacs('lsp-bridge-remote-reconnect', server_host, False)
+                        eval_in_emacs('lsp-bridge-remote-reconnect', server_host, True)
                 except Exception as e:
                     logger.exception(e)
                 finally:
