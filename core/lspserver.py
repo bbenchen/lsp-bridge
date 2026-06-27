@@ -799,7 +799,7 @@ class LspServer:
             ("rename_prepare_provider", ["result", "capabilities", "renameProvider", "prepareProvider"]),
             ("code_action_provider", ["result", "capabilities", "codeActionProvider"]),
             ("code_action_kinds", ["result", "capabilities", "codeActionProvider", "codeActionKinds"]),
-            ("document_highlight_provider", ["result", "capabilities", "documentHighlightProvider"]),            
+            ("document_highlight_provider", ["result", "capabilities", "documentHighlightProvider"]),
             ("code_format_provider", ["result", "capabilities", "documentFormattingProvider"]),
             ("range_format_provider", ["result", "capabilities", "documentRangeFormattingProvider"]),
             ("signature_help_provider", ["result", "capabilities", "signatureHelpProvider"]),
@@ -905,7 +905,8 @@ class LspServer:
                     progress_message += str(message_attr)
 
             if progress_message != "":
-                eval_in_emacs("lsp-bridge--record-work-done-progress", "[LSP-Bridge] " + progress_message)
+                file_paths = list(self.files.keys())
+                eval_in_emacs("lsp-bridge--record-work-done-progress", "[LSP-Bridge] " + progress_message, file_paths)
 
     def handle_register_capability_message(self, message):
         if "method" in message and message["method"] in ["client/registerCapability"]:
@@ -922,6 +923,31 @@ class LspServer:
             except:
                 log_time(traceback.format_exc())
 
+            self.sender.send_response(message["id"], None)
+
+        if "method" in message and message["method"] in ["client/unregisterCapability"]:
+            # Reply is mandatory: gopls blocks its session (and the shared
+            # daemon forwarder) waiting for this response, after which every
+            # request (definition, references, etc.) hangs forever.
+            self.sender.send_response(message["id"], None)
+
+    ANSWERED_SERVER_REQUEST_METHODS = [
+        "workspace/configuration",
+        "workspace/applyEdit",
+        "window/workDoneProgress/create",
+        "client/registerCapability",
+        "client/unregisterCapability",
+    ]
+
+    def handle_unanswered_request_message(self, message):
+        # Every server->client *request* needs a response, or servers like
+        # gopls block their whole session on the missing reply. Null is a
+        # legal response for the requests we can't act on (e.g.
+        # window/showMessageRequest means "user dismissed the prompt").
+        if "id" in message and "method" in message and \
+           message["method"] not in self.ANSWERED_SERVER_REQUEST_METHODS:
+            log_time("Send null response to unhandled server request {} ({})".format(
+                message["method"], message["id"]))
             self.sender.send_response(message["id"], None)
 
     def handle_recv_message(self, message: dict):
