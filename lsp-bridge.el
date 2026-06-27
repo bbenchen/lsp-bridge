@@ -2508,6 +2508,12 @@ Default is `bottom-right', you can choose other value: `top-left', `top-right', 
 
 (defvar lsp-bridge--last-buffer nil)
 
+(defvar-local lsp-bridge--work-done-progress nil
+  "Buffer local LSP work-done progress message for the mode line.")
+
+(defvar-local lsp-bridge--work-done-progress-timer nil
+  "Buffer-local Timer to clear `lsp-bridge--work-done-progress' after inactivity.")
+
 (defun lsp-bridge-monitor-window-buffer-change ()
   ;; Hide completion, diagnostic and signature frame when buffer or window changed.
   (unless (eq (current-buffer)
@@ -3074,10 +3080,55 @@ We need exclude `markdown-code-fontification:*' buffer in `lsp-bridge-monitor-be
   "Add `lsp-bridge-symbols-current-defun' to `which-func-functions'."
   lsp-bridge-symbols-current-defun)
 
-(defun lsp-bridge--record-work-done-progress (progress)
+
+(defun lsp-bridge--record-work-done-progress (progress file-paths)
+  ;; Optional message output, controlled by acm-backend-lsp-show-progress.
   (when acm-backend-lsp-show-progress
     (unless (active-minibuffer-window)
-      (message progress))))
+      (message progress)))
+  ;; Update mode-line progress indicator.
+  (dolist (filepath file-paths)
+    (when-let* ((buf (lsp-bridge-get-match-buffer-by-filepath filepath)))
+      (with-current-buffer buf
+        (when lsp-bridge--work-done-progress-timer
+          (cancel-timer lsp-bridge--work-done-progress-timer)
+          (setq-local lsp-bridge--work-done-progress-timer nil))
+        (setq-local lsp-bridge--work-done-progress
+                    (if (string-equal progress "")
+                        nil
+                      (lsp-bridge--format-progress-message progress)))
+        (unless (string-equal progress "")
+          (let ((buf buf))
+            (setq-local lsp-bridge--work-done-progress-timer
+                        (run-with-timer 1 nil
+                                        (lambda ()
+                                          (when (buffer-live-p buf)
+                                            (with-current-buffer buf
+                                              (setq lsp-bridge--work-done-progress nil)
+                                              (force-mode-line-update t))))))))
+        (force-mode-line-update)))))
+
+(defun lsp-bridge--format-progress-message (progress)
+  "Format progress message for mode-line display."
+  (let* (;; Extract percentage like (96%%)
+         (percent-match (string-match "\\(([0-9]+%%)\\)" progress))
+         (percent (if percent-match
+                      (replace-regexp-in-string "[()]" "" (match-string 1 progress))
+                    ""))
+         ;; Extract stage name: strip rustAnalyzer/ prefix, take word before space/paren
+         (stage (when (string-match "\\(?:rustAnalyzer/\\)?\\([A-Za-z ]+?\\)\\(?:[[:space:]]*(\\|[[:space:]]+[0-9]\\|$\\)" progress)
+                  (string-trim (match-string 1 progress))))
+         (icon (when (fboundp 'nerd-icons-codicon)
+                 (nerd-icons-codicon "nf-cod-sync"))))
+    (cond
+     ;; Both stage and percent
+     ((and stage (not (string-blank-p percent)))
+      (format "%s %s %s" (or icon "") stage percent))
+     ;; Only stage
+     (stage
+      (format "%s %s" (or icon "") stage))
+     ;; Fallback
+     (t ""))))
 
 ;;; Mode-line
 ;;;
@@ -3102,7 +3153,11 @@ We need exclude `markdown-code-fontification:*' buffer in `lsp-bridge-monitor-be
                 'lsp-bridge-kill-mode-line))
 
   (when lsp-bridge-server
-    (propertize "lsp-bridge"'face mode-face)))
+    (concat (propertize "lsp-bridge"'face mode-face)
+            (when lsp-bridge--work-done-progress
+              (propertize (concat " " lsp-bridge--work-done-progress)
+                          'face 'lsp-bridge-alive-mode-line)))
+    ))
 
 (when lsp-bridge-enable-mode-line
   (add-to-list 'mode-line-misc-info

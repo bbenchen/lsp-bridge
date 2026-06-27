@@ -799,7 +799,7 @@ class LspServer:
             ("rename_prepare_provider", ["result", "capabilities", "renameProvider", "prepareProvider"]),
             ("code_action_provider", ["result", "capabilities", "codeActionProvider"]),
             ("code_action_kinds", ["result", "capabilities", "codeActionProvider", "codeActionKinds"]),
-            ("document_highlight_provider", ["result", "capabilities", "documentHighlightProvider"]),            
+            ("document_highlight_provider", ["result", "capabilities", "documentHighlightProvider"]),
             ("code_format_provider", ["result", "capabilities", "documentFormattingProvider"]),
             ("range_format_provider", ["result", "capabilities", "documentRangeFormattingProvider"]),
             ("signature_help_provider", ["result", "capabilities", "signatureHelpProvider"]),
@@ -905,7 +905,8 @@ class LspServer:
                     progress_message += str(message_attr)
 
             if progress_message != "":
-                eval_in_emacs("lsp-bridge--record-work-done-progress", "[LSP-Bridge] " + progress_message)
+                file_paths = list(self.files.keys())
+                eval_in_emacs("lsp-bridge--record-work-done-progress", "[LSP-Bridge] " + progress_message, file_paths)
 
     def handle_register_capability_message(self, message):
         if "method" in message and message["method"] in ["client/registerCapability"]:
