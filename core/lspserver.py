@@ -924,6 +924,31 @@ class LspServer:
 
             self.sender.send_response(message["id"], None)
 
+        if "method" in message and message["method"] in ["client/unregisterCapability"]:
+            # Reply is mandatory: gopls blocks its session (and the shared
+            # daemon forwarder) waiting for this response, after which every
+            # request (definition, references, etc.) hangs forever.
+            self.sender.send_response(message["id"], None)
+
+    ANSWERED_SERVER_REQUEST_METHODS = [
+        "workspace/configuration",
+        "workspace/applyEdit",
+        "window/workDoneProgress/create",
+        "client/registerCapability",
+        "client/unregisterCapability",
+    ]
+
+    def handle_unanswered_request_message(self, message):
+        # Every server->client *request* needs a response, or servers like
+        # gopls block their whole session on the missing reply. Null is a
+        # legal response for the requests we can't act on (e.g.
+        # window/showMessageRequest means "user dismissed the prompt").
+        if "id" in message and "method" in message and \
+           message["method"] not in self.ANSWERED_SERVER_REQUEST_METHODS:
+            log_time("Send null response to unhandled server request {} ({})".format(
+                message["method"], message["id"]))
+            self.sender.send_response(message["id"], None)
+
     def handle_recv_message(self, message: dict):
         if "error" in message:
             self.handle_error_message(message)
