@@ -647,6 +647,7 @@ If nil, lsp-bridge would try to detect by default."
     ((elixir-mode elixir-ts-mode heex-ts-mode) .                                 lsp-bridge-elixir-lsp-server)
     ((go-mode go-ts-mode) .                                                      "gopls")
     (groovy-mode .                                                               "groovy-language-server")
+    (powershell-mode .                                                           "powershell-editor-services")
     (haskell-mode .                                                              "hls")
     ((lua-mode lua-ts-mode)  .                                                   lsp-bridge-lua-lsp-server)
     ((markdown-mode gfm-mode) .                                                  lsp-bridge-markdown-lsp-server)
@@ -791,6 +792,7 @@ If nil, lsp-bridge would try to detect by default."
     yaml-mode-hook
     zig-mode-hook
     groovy-mode-hook
+    powershell-mode-hook
     dockerfile-mode-hook
     dockerfile-ts-mode-hook
     d-mode-hook
@@ -1296,7 +1298,8 @@ For .org files, scan all buffers for an active C-c ' (org-src-mode)
 sub-buffer editing this file and use its major-mode (e.g.
 groovy-mode) for server lookup.  This avoids depending on the
 calling buffer's local variables, which may not be set when
-Python queries get-single-lang-server."
+Python queries get-single-lang-server.
+If no sub-buffer is active, use the Org buffer for inline Babel lookup."
   (if (string-suffix-p ".org" filename)
       (let ((c-sub (car (delq nil
                         (mapcar (lambda (b)
@@ -1307,12 +1310,20 @@ Python queries get-single-lang-server."
                                                  (and obuf (equal (buffer-file-name obuf) filename))))
                                       b)))
                                 (buffer-list))))))
-        (when c-sub
-          (with-current-buffer c-sub
-            (when-let* ((info (lsp-bridge-lang-server-by-mode
-                               major-mode
-                               lsp-bridge-single-lang-server-mode-list)))
-              (lsp-bridge-get-symbol-string-value (cdr info))))))
+        (if c-sub
+            (with-current-buffer c-sub
+              (when-let* ((info (lsp-bridge-lang-server-by-mode
+                                 major-mode
+                                 lsp-bridge-single-lang-server-mode-list)))
+                (lsp-bridge-get-symbol-string-value (cdr info))))
+          ;; Inline Babel editing has no separate org-src buffer.
+          (when-let* ((buffer (lsp-bridge-get-match-buffer-by-filepath filename)))
+            (with-current-buffer buffer
+              (cond
+               (lsp-bridge-use-wenls-in-org-mode "wen")
+               (lsp-bridge-use-ds-pinyin-in-org-mode "ds-pinyin")
+               (lsp-bridge-enable-org-babel
+                (lsp-bridge-org-babel-check-lsp-server)))))))
     (let* ((mode (lsp-brige-get-mode filename))
            (langserver-info (lsp-bridge-lang-server-by-mode mode lsp-bridge-single-lang-server-mode-list)))
       (cond (langserver-info
